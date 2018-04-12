@@ -33,8 +33,7 @@ public class Example4b
         // open with ImgOpener
     	String fileName =   "D:\\tmp\\aqa\\Phase2\\AQA-master\\RI.$JM_AQA_phase2_v000.MV_243_0a.dcm";
 
-        //Img< T > img = (Img< T >) new ImgOpener().openImg( "DrosophilaWing.tif" );
-        Img< T > img = (Img< T >) new ImgOpener().openImg( fileName );
+        Img< T > img = (Img< T >) new ImgOpener().openImg( "DrosophilaWing.tif" );
  
         // first we do a small in-place gaussian smoothing with a sigma of 1
         Gauss.inDoubleInPlace( new double[]{ 1, 1 }, img );
