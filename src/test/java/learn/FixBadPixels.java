@@ -1,5 +1,7 @@
 package learn;
 
+import java.util.TreeMap;
+
 import ij.ImageJ;
 import io.scif.img.ImgIOException;
 import io.scif.img.ImgOpener;
@@ -75,7 +77,7 @@ public class FixBadPixels {
 		// (this corresponds to an 8-neighborhood in 2d or 26-neighborhood in 3d, ...)
 		final RectangleShape shape = new RectangleShape(1, true);
 
-		T totalDiff = Views.iterable(source).cursor().next();
+		TreeMap<Float, Cursor<T>> mostExtreme = new TreeMap<Float, Cursor<T>>();
 
 		// iterate over the set of neighborhoods in the image
 		for (final Neighborhood<T> localNeighborhood : shape.neighborhoods(source)) {
@@ -83,30 +85,37 @@ public class FixBadPixels {
 			// (the center cursor runs over the image in the same iteration order as
 			// neighborhood)
 			final T centerValue = center.next();
+			double cv = centerValue.getRealFloat();
 
-			// keep this boolean true as long as no other value in the local neighborhood
-			// is larger or equal
-			boolean isMinimum = true;
-			totalDiff.setZero();
+			float total = 0;
 
-			long numNeighbors = localNeighborhood.size();
 			// check if all pixels in the local neighborhood that are smaller
 			for (final T value : localNeighborhood) {
 				// find difference
-				if (centerValue.compareTo(value) >= 0) {
-					isMinimum = false;
-					break;
-				}
+				double v = value.getRealFloat();
+				total += Math.abs(v - cv);
 			}
 
-			if (isMinimum) {
-				// draw a sphere of radius one in the new image
-				HyperSphere<U> hyperSphere = new HyperSphere<U>(output, center, 1);
+			float avg = total / localNeighborhood.size();
 
-				// set every value inside the sphere to 1
-				for (U value : hyperSphere)
-					value.setOne();
-			}
+			mostExtreme.put(avg, center.copyCursor());
+
+			while (mostExtreme.size() > 2)
+				mostExtreme.remove(mostExtreme.firstKey());
+		}
+
+		System.out.println("List");
+		for (float x : mostExtreme.keySet()) {
+			Cursor<T> c = mostExtreme.get(x);
+			System.out.println("    " + x + " : " + c.getIntPosition(0) + ", " + c.getIntPosition(1));
+
+			// draw a sphere of radius one in the new image
+			HyperSphere<U> hyperSphere = new HyperSphere<U>(output, c, 1);
+
+			// set every value inside the sphere to 1
+			for (U value : hyperSphere)
+				value.setOne();
+
 		}
 
 		return output;
