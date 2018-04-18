@@ -25,11 +25,13 @@ import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 
 /**
- * Here we use special cursors to find the local minima and display them with
- * spheres in another image
+ * Find the pixels whose value is most different from their neighbors and
+ * display them with spheres in another image.
+ *
+ * Based on <code>Example4b</code>.
  */
-public class FindWorstPixels {
-	public <T extends RealType<T> & NativeType<T>> FindWorstPixels() throws ImgIOException {
+public class FindAndDisplayWorstPixels {
+	public <T extends RealType<T> & NativeType<T>> FindAndDisplayWorstPixels() throws ImgIOException {
 		// open with ImgOpener
 		String fileName = "D:\\tmp\\aqa\\Phase2\\AQA-master\\RI.$JM_AQA_phase2_v000.MV_243_0a.dcm";
 
@@ -96,6 +98,10 @@ public class FindWorstPixels {
 				total += Math.abs(v - cv);
 			}
 
+			if (localNeighborhood.size() != 8) {
+				System.out.println("different localNeighborhood.size: " + localNeighborhood.size());
+			}
+
 			float avg = total / localNeighborhood.size();
 
 			mostExtreme.put(avg, center.copyCursor());
@@ -126,6 +132,6 @@ public class FindWorstPixels {
 		new ImageJ();
 
 		// run the example
-		new FindWorstPixels();
+		new FindAndDisplayWorstPixels();
 	}
 }
