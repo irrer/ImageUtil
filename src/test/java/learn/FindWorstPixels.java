@@ -28,8 +28,8 @@ import net.imglib2.view.Views;
  * Here we use special cursors to find the local minima and display them with
  * spheres in another image
  */
-public class FixBadPixels {
-	public <T extends RealType<T> & NativeType<T>> FixBadPixels() throws ImgIOException {
+public class FindWorstPixels {
+	public <T extends RealType<T> & NativeType<T>> FindWorstPixels() throws ImgIOException {
 		// open with ImgOpener
 		String fileName = "D:\\tmp\\aqa\\Phase2\\AQA-master\\RI.$JM_AQA_phase2_v000.MV_243_0a.dcm";
 
@@ -100,7 +100,7 @@ public class FixBadPixels {
 
 			mostExtreme.put(avg, center.copyCursor());
 
-			while (mostExtreme.size() > 2)
+			while (mostExtreme.size() > 20)
 				mostExtreme.remove(mostExtreme.firstKey());
 		}
 
@@ -126,6 +126,6 @@ public class FixBadPixels {
 		new ImageJ();
 
 		// run the example
-		new FixBadPixels();
+		new FindWorstPixels();
 	}
 }
