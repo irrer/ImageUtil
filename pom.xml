@@ -18,6 +18,7 @@
         <dependency> <groupId>net.imagej</groupId>                                   <artifactId>ij</artifactId>                    <version>1.51w</version>         </dependency>
         <dependency> <groupId>net.imglib2</groupId>                                  <artifactId>imglib2-ij</artifactId>            <version>2.0.0-beta-39</version> </dependency>
         <dependency> <groupId>net.imglib2</groupId>                                  <artifactId>imglib2-algorithm</artifactId>     <version>0.8.2</version>         </dependency>
+        <dependency> <groupId>net.imglib2</groupId>                                  <artifactId>imglib2-algorithm-gpl</artifactId> <version>0.2.2</version>         </dependency>
         <dependency> <groupId>com.googlecode.efficient-java-matrix-library</groupId> <artifactId>ejml</artifactId>                  <version>0.24</version>          </dependency>
    </dependencies>
     <!--
