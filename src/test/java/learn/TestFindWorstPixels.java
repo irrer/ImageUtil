@@ -1,6 +1,5 @@
-package edu.umro.ImageUtil.test;
+package learn;
 
-import java.io.File;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 
@@ -29,15 +28,59 @@ import net.imglib2.view.Views;
  */
 public class TestFindWorstPixels {
 
-	public <T extends RealType<T> & NativeType<T>> void testFindWorstPixels(String fileName) throws ImgIOException {
+	public <T extends RealType<T> & NativeType<T>> void testFindWorstPixels() throws ImgIOException {
 		// open with ImgOpener
+		String fileName = "src\\test\\resources\\TestFindWorstPixels.dcm";
+
 		@SuppressWarnings("unchecked")
 		SCIFIOImgPlus<T> img = (SCIFIOImgPlus<T>) (new ImgOpener().openImgs(fileName).get(0));
 
-		TreeMap<Float, Cursor<T>> worstList = FindWorstPixels.findWorstPixels(img, 6);
+		TreeMap<Float, Cursor<T>> worstList = FindWorstPixels.findWorstPixels(img, 5);
+
+		if (System.out != null) {
+			FinalInterval j = Intervals.createMinSize(10, 10, 20, 20);
+			final RandomAccessibleInterval<T> ivs = Views.interval(img, j);
+			final Cursor<T> curse = Views.iterable(ivs).cursor();
+
+			class Foo implements Consumer<T> {
+
+				int minX = 1000000;
+				int maxX = -1;
+				int minY = 1000000;
+				int maxY = -1;
+				long count = 0;
+
+				@Override
+				public void accept(T t) {
+					int x = curse.getIntPosition(0);
+					int y = curse.getIntPosition(1);
+					if (x < minX)
+						minX = x;
+					if (x > maxX)
+						maxX = x;
+					if (y < minY)
+						minY = y;
+					if (y > maxY)
+						maxY = y;
+					count++;
+					if (((x + y) % 2) == 0)
+						t.setReal(50000);
+					else
+						t.setZero();
+				}
+
+			}
+
+			Foo foo = new Foo();
+			Consumer<? super T> action = foo;
+			curse.forEachRemaining(action);
+			System.out.println("minX: " + foo.minX + "    maxX: " + foo.maxX);
+			System.out.println("minY: " + foo.minY + "    maxY: " + foo.maxY);
+			System.out.println("count: " + foo.count);
+
+		}
 
 		boolean onOff = false;
-		System.out.println("list of the worst pixels");
 
 		for (float bad : worstList.keySet()) {
 			Cursor<T> cursor = worstList.get(bad);
@@ -71,11 +114,7 @@ public class TestFindWorstPixels {
 	public static void main(String[] args) throws ImgIOException, IncompatibleTypeException {
 		// open an ImageJ window
 		new ImageJ();
-		String fileName = "src\\test\\resources\\TestFindWorstPixels.dcm";
-		if (args.length > 0) {
-			fileName = args[0];
-		}
-		System.out.println("Using file: " + (new File(fileName)));
-		(new TestFindWorstPixels()).testFindWorstPixels(fileName);
+
+		(new TestFindWorstPixels()).testFindWorstPixels();
 	}
 }
