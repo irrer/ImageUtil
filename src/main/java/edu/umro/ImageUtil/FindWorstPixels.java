@@ -57,11 +57,7 @@ public class FindWorstPixels {
 
 			float total = 0;
 
-			if (localNeighborhood.size() != 8) { // TODO rm
-				System.out.println("localNeighborhood.size(): " + localNeighborhood.size());
-			}
-
-			// check if all pixels in the local neighborhood that are smaller
+			// sum the absolute value of the differences from adjancent pixels
 			for (final T value : localNeighborhood) {
 				// find difference
 				double v = value.getRealFloat();
