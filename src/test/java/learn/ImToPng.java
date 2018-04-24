@@ -1,19 +1,14 @@
 package learn;
 
-import java.util.TreeMap;
 import java.util.function.Consumer;
 
-import edu.umro.ImageUtil.FindWorstPixels;
 import ij.ImageJ;
 import io.scif.img.ImgIOException;
 import io.scif.img.ImgOpener;
 import io.scif.img.SCIFIOImgPlus;
-import io.scif.jj2000.j2k.image.ImgDataConverter;
 import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
-import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.algorithm.region.hypersphere.HyperSphere;
 import net.imglib2.exception.IncompatibleTypeException;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;

@@ -1,4 +1,4 @@
-package edu.umro.ImageUtil
+package edu.umro.ImageUtil.test;
 
 import com.pixelmed.dicom.AttributeList
 import io.scif.img.SCIFIOImgPlus
@@ -16,6 +16,7 @@ import java.io.File
 import javax.imageio.ImageIO
 import scala.Left
 import scala.Right
+import edu.umro.ImageUtil.ImageUtil
 
 object TestImageUtil {
 

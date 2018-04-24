@@ -1,7 +1,8 @@
-package edu.umro.ImageUtil;
+package edu.umro.ImageUtil2.copy;
 
 import java.util.TreeMap;
 
+import io.scif.img.SCIFIOImgPlus;
 import net.imglib2.Cursor;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
@@ -28,6 +29,9 @@ public class FindWorstPixels {
 	 * @return - a list of the worst pixels, sorted with the worst (highest value)
 	 *         last
 	 */
+//	public static <T extends RealType<T> & NativeType<T>> TreeMap<Float, Cursor<T>> findWorstPixels(
+//			final RandomAccessibleInterval<T> source, final int count) {
+
 	public static <T extends RealType<T> & NativeType<T>> TreeMap<Float, Cursor<T>> findWorstPixels(
 			final RandomAccessibleInterval<T> source, final int count) {
 
@@ -57,7 +61,7 @@ public class FindWorstPixels {
 
 			float total = 0;
 
-			// sum the absolute value of the differences from adjancent pixels
+			// sum the absolute value of the differences from adjacent pixels
 			for (final T value : localNeighborhood) {
 				// find difference
 				double v = value.getRealFloat();

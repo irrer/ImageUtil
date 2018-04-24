@@ -1,4 +1,4 @@
-package edu.umro.ImageUtil
+package edu.umro.ImageUtil2.copy
 
 import com.pixelmed.dicom.AttributeList
 import io.scif.img.SCIFIOImgPlus
@@ -19,13 +19,32 @@ import scala.Right
 
 object ImageUtil {
 
+  type PixelType = RealType[_]
+
+  /**
+   * Read a DICOM file into an imglib2 object.
+   */
+  def readDicomFile(dicomFileName: String): Either[String, SCIFIOImgPlus[_]] = {
+    try {
+      val j = (new ImgOpener).openImgs(dicomFileName).get(0) // TODO rm
+      val j1 = j.getClass // TODO rm
+      val j2 = j1.toString // TODO rm
+
+      Right((new ImgOpener).openImgs(dicomFileName).get(0))
+    } catch {
+      case t: Throwable => {
+        Left("Unexpected error: " + t.toString)
+      }
+    }
+  }
+
   /**
    * Container for a pair of min and max values.
    */
-  case class MinMax(min: Int, max: Int) {
-    def this() = this(Int.MaxValue, Int.MinValue)
+  case class MinMax(min: Float, max: Float) {
+    def this() = this(Float.MaxValue, Float.MinValue)
 
-    def update(v: Int) = {
+    def update(v: Float) = {
       new MinMax(Math.min(min, v), Math.max(max, v))
     }
   }
@@ -33,8 +52,10 @@ object ImageUtil {
   /**
    * Find the minimum and maximum values of an image.
    */
-  def minMaxValuesOf(pixelData: Array[Short]): MinMax = {
-    pixelData.foldLeft(new MinMax)((mm, v) => mm.update(v & 0xffff))
+  def minMaxValuesOf(imgPlus: SCIFIOImgPlus[_]): MinMax = {
+    val cursor = Views.iterable(imgPlus).cursor.asScala.asInstanceOf[Iterator[PixelType]]
+    val minMax = cursor.foldLeft(new MinMax)((mm, v) => mm.update(v.getRealFloat))
+    minMax
   }
 
   /**
@@ -46,11 +67,10 @@ object ImageUtil {
    *
    * @param color: Maximum color level for pixels.  Example: <code>Color.GREEN</code>.
    */
-  def floatToBufferedImage(image: DicomImage, color: Color): BufferedImage = {
+  def imgPlusToBufferedImage(imgPlus: SCIFIOImgPlus[_], color: Color): BufferedImage = {
     val width = imgPlus.getImg.dimension(0).toInt
     val height = imgPlus.getImg.dimension(1).toInt
-    //val minMax = minMaxValuesOf(imgPlus)
-    val minMax: MinMax =null
+    val minMax = minMaxValuesOf(imgPlus)
 
     // calculate a lookup table once
     val rgbTable = {
@@ -96,10 +116,10 @@ object ImageUtil {
 
     val cursor = Views.iterable(imgPlus).cursor
 
-//    while (cursor.hasNext) {
-//      val p = cursor.next.asInstanceOf[PixelType].getRealFloat
-//      bufImage.setRGB(cursor.getIntPosition(0), cursor.getIntPosition(1), levelToColor(p))
-//    }
+    while (cursor.hasNext) {
+      val p = cursor.next.asInstanceOf[PixelType].getRealFloat
+      bufImage.setRGB(cursor.getIntPosition(0), cursor.getIntPosition(1), levelToColor(p))
+    }
 
     bufImage
   }

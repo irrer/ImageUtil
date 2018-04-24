@@ -2,24 +2,17 @@ package edu.umro.ImageUtil.test;
 
 import java.io.File;
 import java.util.TreeMap;
-import java.util.function.Consumer;
-
 import edu.umro.ImageUtil.FindWorstPixels;
 import ij.ImageJ;
 import io.scif.img.ImgIOException;
 import io.scif.img.ImgOpener;
 import io.scif.img.SCIFIOImgPlus;
 import net.imglib2.Cursor;
-import net.imglib2.FinalInterval;
-import net.imglib2.Interval;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.region.hypersphere.HyperSphere;
 import net.imglib2.exception.IncompatibleTypeException;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.util.Intervals;
-import net.imglib2.view.Views;
 
 /**
  * Find the pixels whose value is most different from their neighbors and
