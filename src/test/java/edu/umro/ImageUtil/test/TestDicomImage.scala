@@ -41,6 +41,22 @@ object TestDicomImage {
 
     println("worst:\n    " + worst.mkString("\n    "))
 
+    //    val sampleSize = 150
+    //    val maxBadPixels = 10
+    //    val stdDevMultiple = 10.0
+
+    val badList = dicomImage.identifyBadPixels(150, 10, 10.0)
+
+    println("Bad pixels: " + badList.mkString("\n    ", "\n    ", "\n    "))
+
+    //    println("maxBadPixels: " + maxBadPixels)
+    //    println("mean: " + mean)
+    //    println("variance: " + variance)
+    //    println("stdDev: " + stdDev)
+    //    def fmt(d: Double) = d.formatted("%6.1f")
+    //    worst.map(w => println("    diff: " + fmt(Math.abs(w.rating - mean)) + "    " + fmt(w.rating) + "  " + w.x + "," + w.y))
+    //    println
+
     println("TestDicomImage done")
 
   }

@@ -44,6 +44,15 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     ratingList.sortWith((a, b) => (a.rating > b.rating)).take(count)
   }
 
+  def identifyBadPixels(sampleSize: Int, maxBadPixels: Int, stdDevMultiple: Double): IndexedSeq[PixelRating] = {
+    val worst = findWorstPixels(sampleSize)
+    val mean = worst.drop(maxBadPixels).map(w => w.rating).sum / (worst.size - maxBadPixels)
+    val variance = worst.drop(maxBadPixels).map(w => (w.rating - mean) * (w.rating - mean)).sum / (worst.size - maxBadPixels)
+    val stdDev = Math.sqrt(variance)
+    val threshold = stdDevMultiple * stdDev
+    worst.filter(w => Math.abs(w.rating - mean) > threshold)
+  }
+
   def toBufferedImage(color: Color): BufferedImage = {
 
     // calculate a lookup table once
