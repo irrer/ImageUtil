@@ -22,15 +22,21 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
   case class PixelRating(rating: Float, x: Int, y: Int);
 
-  def validXY(x: Int, y: Int): Boolean = (x >= 0) && (x < width) && (y >= 0) && (y < height)
+  def validXY(x: Int, y: Int): Boolean = {
+    val ok = (x >= 0) && (x < width) && (y >= 0) && (y < height)
+    ok
+  }
 
-  def findWorstPixels(count: Int) : IndexedSeq[PixelRating]= {
+  def findWorstPixels(count: Int): IndexedSeq[PixelRating] = {
     // list of offset coordinates for adjacent pixels
-    val neighbors = for (x <- (-1 to 1); y <- (-1 to 1); if ((x != 0) && (y != 0))) yield (x, y)
+    val neighbors = {
+      val nextTo = Seq(-1, 0, 1)
+      for (x <- nextTo; y <- nextTo; if (!((x == 0) && (y == 0)))) yield (x, y)
+    }
 
     def ratePixel(x: Int, y: Int): Float = {
       val v = pixelData(x)(y)
-      val valid = neighbors.filter(n => validXY(x + n._1, y + n._2))
+      val valid = neighbors.map(n => (x + n._1, y + n._2)).filter(n => validXY(n._1, n._2))
       valid.map(xy => Math.abs(pixelData(xy._1)(xy._2) - v)).sum / valid.size
     }
 
