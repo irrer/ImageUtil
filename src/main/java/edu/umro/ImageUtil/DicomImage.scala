@@ -14,8 +14,31 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   val width = Columns
   val height = Rows
 
+  /** minimum pixel value. */
+  lazy val min = pixelData.map(row => row.min).min
+
+  /** maximum pixel value. */
+  lazy val max = pixelData.map(row => row.max).max
+
+  case class PixelRating(rating: Float, x: Int, y: Int);
+
+  def validXY(x: Int, y: Int): Boolean = (x >= 0) && (x < width) && (y >= 0) && (y < height)
+
+  def findWorstPixels(count: Int) : IndexedSeq[PixelRating]= {
+    // list of offset coordinates for adjacent pixels
+    val neighbors = for (x <- (-1 to 1); y <- (-1 to 1); if ((x != 0) && (y != 0))) yield (x, y)
+
+    def ratePixel(x: Int, y: Int): Float = {
+      val v = pixelData(x)(y)
+      val valid = neighbors.filter(n => validXY(x + n._1, y + n._2))
+      valid.map(xy => Math.abs(pixelData(xy._1)(xy._2) - v)).sum / valid.size
+    }
+
+    val ratingList = { for (x <- (0 until width); y <- (0 until height)) yield { new PixelRating(ratePixel(x, y), x, y) } }
+    ratingList.sortWith((a, b) => (a.rating > b.rating)).take(count)
+  }
+
   def toBufferedImage(color: Color): BufferedImage = {
-    val minMax: MinMax = null
 
     // calculate a lookup table once
     val rgbTable = {
@@ -42,7 +65,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       (0 until 256).map(i => iToRGB(i))
     }
 
-    val ratio = 256 / (minMax.max - minMax.min)
+    val ratio = 256 / (max - min)
 
     /**
      * Given a pixel level, return the RGB color.

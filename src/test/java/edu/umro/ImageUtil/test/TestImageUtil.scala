@@ -16,7 +16,7 @@ import java.io.File
 import javax.imageio.ImageIO
 import scala.Left
 import scala.Right
-import edu.umro.ImageUtil.ImageUtil
+import edu.umro.ImgUtilities.ImgUtilities
 
 object TestImageUtil {
 
@@ -24,11 +24,12 @@ object TestImageUtil {
 
     val fileName = "src\\test\\resources\\TestFindWorstPixels.dcm"
 
-    val imgPlus = ImageUtil.readDicomFile(fileName).right.get
-    val minMax = ImageUtil.minMaxValuesOf(imgPlus)
+    ImgUtilities
+    val imgPlus = ImgUtilities.readDicomFile(fileName).right.get
+    val minMax = ImgUtilities.minMaxValuesOf(imgPlus)
     println("minMax: " + minMax)
 
-    val bufImg = ImageUtil.imgPlusToBufferedImage(imgPlus, Color.CYAN)
+    val bufImg = ImgUtilities.imgPlusToBufferedImage(imgPlus, Color.CYAN)
     val pngName = "target\\foo.png"
     val pngFile = new File(pngName)
     pngFile.delete

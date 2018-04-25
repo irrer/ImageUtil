@@ -2,7 +2,7 @@ package edu.umro.ImageUtil.test;
 
 import java.io.File;
 import java.util.TreeMap;
-import edu.umro.ImageUtil.FindWorstPixels;
+import edu.umro.ImgUtilities.FindWorstPixels;
 import ij.ImageJ;
 import io.scif.img.ImgIOException;
 import io.scif.img.ImgOpener;

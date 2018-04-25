@@ -1,4 +1,4 @@
-package edu.umro.ImageUtil2.copy;
+package edu.umro.ImgUtilities;
 
 import java.util.TreeMap;
 
