@@ -4,8 +4,9 @@ import com.pixelmed.dicom.AttributeList
 import com.pixelmed.dicom.TagFromName
 import java.awt.image.BufferedImage
 import java.awt.Color
+import java.awt.Rectangle
 
-class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
+class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
 
   val Rows = pixelData.size
@@ -13,6 +14,8 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
   val width = Columns
   val height = Rows
+
+  def get(x: Int, y: Int) = pixelData(y)(x)
 
   /** minimum pixel value. */
   lazy val min = pixelData.map(row => row.min).min
@@ -29,15 +32,16 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
   def findWorstPixels(count: Int): IndexedSeq[PixelRating] = {
     // list of offset coordinates for adjacent pixels
+    case class XY(x: Int, y: Int)
     val neighbors = {
       val nextTo = Seq(-1, 0, 1)
-      for (x <- nextTo; y <- nextTo; if (!((x == 0) && (y == 0)))) yield (x, y)
+      for (x <- nextTo; y <- nextTo; if (!((x == 0) && (y == 0)))) yield new XY(x, y)
     }
 
     def ratePixel(x: Int, y: Int): Float = {
-      val v = pixelData(x)(y)
-      val valid = neighbors.map(n => (x + n._1, y + n._2)).filter(n => validXY(n._1, n._2))
-      valid.map(xy => Math.abs(pixelData(xy._1)(xy._2) - v)).sum / valid.size
+      val v = get(x, y)
+      val valid = neighbors.map(xy => new XY(x + xy.x, y + xy.y)).filter(xy => validXY(xy.x, xy.y))
+      valid.map(xy => Math.abs(get(xy.x, xy.y) - v)).sum / valid.size
     }
 
     val ratingList = { for (x <- (0 until width); y <- (0 until height)) yield { new PixelRating(ratePixel(x, y), x, y) } }
@@ -97,19 +101,29 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
     val bufImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
 
-    for (x <- (0 until width); y <- (0 until height)) bufImage.setRGB(x, y, levelToColor(pixelData(x)(y)))
+    for (x <- (0 until width); y <- (0 until height)) bufImage.setRGB(x, y, levelToColor(get(x, y)))
 
     bufImage
+  }
+
+  def subRectangleOf(rectangle: Rectangle): DicomImage = {
+    val x = (if (rectangle.getX < 0) 0 else rectangle.getX).toInt
+    val y = (if (rectangle.getY < 0) 0 else rectangle.getY).toInt
+    val w = (if (rectangle.getX + rectangle.getWidth > width) width - rectangle.getX else rectangle.getWidth).toInt
+    val h = (if (rectangle.getY + rectangle.getHeight > height) height - rectangle.getY else rectangle.getHeight).toInt
+
+    // (0 until h).map(row => pixelData(y + row)
+    ???
   }
 }
 
 object DicomImage {
   def getPixelData(attributeList: AttributeList): IndexedSeq[IndexedSeq[Float]] = {
-    val pixelData = attributeList.getPixelData.getShortValues
+    val pixDat = attributeList.getPixelData.getShortValues
     val Rows = attributeList.get(TagFromName.Rows).getIntegerValues()(0)
     val Columns = attributeList.get(TagFromName.Columns).getIntegerValues()(0)
 
-    val pixelDataFloat = (0 until Rows).map(c => pixelData.drop(c * Columns).take(Columns).toIndexedSeq.map(s => (s & 0xffff).toFloat))
+    val pixelDataFloat = (0 until Rows).map(c => pixDat.drop(c * Columns).take(Columns).toIndexedSeq.map(s => (s & 0xffff).toFloat))
     pixelDataFloat
   }
 }

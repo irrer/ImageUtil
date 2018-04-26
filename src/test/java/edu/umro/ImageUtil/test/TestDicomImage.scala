@@ -18,6 +18,7 @@ import scala.Left
 import scala.Right
 import edu.umro.ImgUtilities.ImgUtilities
 import edu.umro.ImageUtil.DicomImage
+import edu.umro.ImageUtil.ImageUtil
 
 object TestDicomImage {
 
@@ -30,14 +31,15 @@ object TestDicomImage {
 
     val dicomImage = new DicomImage(al)
 
-    val bufImage = dicomImage.toBufferedImage(Color.CYAN)
+    if (true) {
+      val bufImage = dicomImage.toBufferedImage(Color.CYAN)
+      val pngName = "target\\original.png"
+      val pngFile = new File(pngName)
+      pngFile.delete
+      ImageIO.write(bufImage, "png", pngFile)
+    }
 
-    val pngName = "target\\foo.png"
-    val pngFile = new File(pngName)
-    pngFile.delete
-    ImageIO.write(bufImage, "png", pngFile)
-
-    val worst = dicomImage.findWorstPixels(5)
+    val worst = dicomImage.findWorstPixels(10)
 
     println("worst:\n    " + worst.mkString("\n    "))
 
@@ -46,6 +48,16 @@ object TestDicomImage {
     //    val stdDevMultiple = 10.0
 
     val badList = dicomImage.identifyBadPixels(150, 10, 10.0)
+
+    if (true) {
+      val bufImage = dicomImage.toBufferedImage(Color.GREEN)
+      val pngName = "target\\badPixels.png"
+      val pngFile = new File(pngName)
+
+      badList.map(w => ImageUtil.annotatePixel(bufImage, w.x, w.y, Color.YELLOW, w.x + ", " + w.y))
+      pngFile.delete
+      ImageIO.write(bufImage, "png", pngFile)
+    }
 
     println("Bad pixels: " + badList.mkString("\n    ", "\n    ", "\n    "))
 
