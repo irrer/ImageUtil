@@ -49,17 +49,31 @@ object TestDicomImage {
 
     val badList = dicomImage.identifyBadPixels(150, 10, 10.0)
 
+    println("Bad pixels: " + badList.mkString("\n    ", "\n    ", "\n    "))
+
+    val badPixelImage = dicomImage.toBufferedImage(Color.GREEN)
+
     if (true) {
-      val bufImage = dicomImage.toBufferedImage(Color.GREEN)
+
+      def makeBadPixelImage(bad: DicomImage.PixelRating) = {
+        val pngName = "target\\badPixels.png"
+        val pngFile = new File(pngName)
+        pngFile.delete
+        ImageIO.write(bufImage, "png", pngFile)
+
+      }
+
+      badList.map(w => makeBadPixelImage(w))
+    }
+
+    if (true) {
       val pngName = "target\\badPixels.png"
       val pngFile = new File(pngName)
 
-      badList.map(w => ImageUtil.annotatePixel(bufImage, w.x, w.y, Color.YELLOW, w.x + ", " + w.y))
+      badList.map(w => ImageUtil.annotatePixel(badPixelImage, w.x, w.y, Color.YELLOW, w.x + ", " + w.y))
       pngFile.delete
-      ImageIO.write(bufImage, "png", pngFile)
+      ImageIO.write(badPixelImage, "png", pngFile)
     }
-
-    println("Bad pixels: " + badList.mkString("\n    ", "\n    ", "\n    "))
 
     //    println("maxBadPixels: " + maxBadPixels)
     //    println("mean: " + mean)

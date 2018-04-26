@@ -15,6 +15,20 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
   val width = Columns
   val height = Rows
 
+  /**
+   * Make a new <code>DicomImage</code> based on a sub-rectangle of this one.  If part of the
+   * specified rectangle is out of bounds a cropped version will be used.
+   */
+  def subRectangleOf(rectangle: Rectangle): DicomImage = {
+    val x = (if (rectangle.getX < 0) 0 else rectangle.getX).toInt
+    val y = (if (rectangle.getY < 0) 0 else rectangle.getY).toInt
+    val w = (if (rectangle.getX + rectangle.getWidth > width) width - rectangle.getX else rectangle.getWidth).toInt
+    val h = (if (rectangle.getY + rectangle.getHeight > height) height - rectangle.getY else rectangle.getHeight).toInt
+
+    val pixDat = (0 until h).map(row => pixelData(y + row).drop(x).take(width))
+    new DicomImage(pixDat)
+  }
+
   def get(x: Int, y: Int) = pixelData(y)(x)
 
   /** minimum pixel value. */
@@ -23,14 +37,12 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
   /** maximum pixel value. */
   lazy val max = pixelData.map(row => row.max).max
 
-  case class PixelRating(rating: Float, x: Int, y: Int);
-
   def validXY(x: Int, y: Int): Boolean = {
     val ok = (x >= 0) && (x < width) && (y >= 0) && (y < height)
     ok
   }
 
-  def findWorstPixels(count: Int): IndexedSeq[PixelRating] = {
+  def findWorstPixels(count: Int): IndexedSeq[DicomImage.PixelRating] = {
     // list of offset coordinates for adjacent pixels
     case class XY(x: Int, y: Int)
     val neighbors = {
@@ -44,11 +56,11 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
       valid.map(xy => Math.abs(get(xy.x, xy.y) - v)).sum / valid.size
     }
 
-    val ratingList = { for (x <- (0 until width); y <- (0 until height)) yield { new PixelRating(ratePixel(x, y), x, y) } }
+    val ratingList = { for (x <- (0 until width); y <- (0 until height)) yield { new DicomImage.PixelRating(ratePixel(x, y), x, y) } }
     ratingList.sortWith((a, b) => (a.rating > b.rating)).take(count)
   }
 
-  def identifyBadPixels(sampleSize: Int, maxBadPixels: Int, stdDevMultiple: Double): IndexedSeq[PixelRating] = {
+  def identifyBadPixels(sampleSize: Int, maxBadPixels: Int, stdDevMultiple: Double): IndexedSeq[DicomImage.PixelRating] = {
     val worst = findWorstPixels(sampleSize)
     val mean = worst.drop(maxBadPixels).map(w => w.rating).sum / (worst.size - maxBadPixels)
     val variance = worst.drop(maxBadPixels).map(w => (w.rating - mean) * (w.rating - mean)).sum / (worst.size - maxBadPixels)
@@ -106,18 +118,12 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
     bufImage
   }
 
-  def subRectangleOf(rectangle: Rectangle): DicomImage = {
-    val x = (if (rectangle.getX < 0) 0 else rectangle.getX).toInt
-    val y = (if (rectangle.getY < 0) 0 else rectangle.getY).toInt
-    val w = (if (rectangle.getX + rectangle.getWidth > width) width - rectangle.getX else rectangle.getWidth).toInt
-    val h = (if (rectangle.getY + rectangle.getHeight > height) height - rectangle.getY else rectangle.getHeight).toInt
-
-    // (0 until h).map(row => pixelData(y + row)
-    ???
-  }
 }
 
 object DicomImage {
+
+  case class PixelRating(rating: Float, x: Int, y: Int);
+
   def getPixelData(attributeList: AttributeList): IndexedSeq[IndexedSeq[Float]] = {
     val pixDat = attributeList.getPixelData.getShortValues
     val Rows = attributeList.get(TagFromName.Rows).getIntegerValues()(0)
