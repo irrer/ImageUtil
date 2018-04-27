@@ -5,6 +5,7 @@ import com.pixelmed.dicom.TagFromName
 import java.awt.image.BufferedImage
 import java.awt.Color
 import java.awt.Rectangle
+import java.awt.Point
 
 class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
@@ -19,7 +20,7 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
    * Make a new <code>DicomImage</code> based on a sub-rectangle of this one.  If part of the
    * specified rectangle is out of bounds a cropped version will be used.
    */
-  def subRectangleOf(rectangle: Rectangle): DicomImage = {
+  def getSubimage(rectangle: Rectangle): DicomImage = {
     val x = (if (rectangle.getX < 0) 0 else rectangle.getX).toInt
     val y = (if (rectangle.getY < 0) 0 else rectangle.getY).toInt
     val w = (if (rectangle.getX + rectangle.getWidth > width) width - rectangle.getX else rectangle.getWidth).toInt
@@ -37,26 +38,26 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
   /** maximum pixel value. */
   lazy val max = pixelData.map(row => row.max).max
 
-  def validXY(x: Int, y: Int): Boolean = {
+  def validPoint(x: Int, y: Int): Boolean = {
     val ok = (x >= 0) && (x < width) && (y >= 0) && (y < height)
     ok
   }
 
-  def findWorstPixels(count: Int): IndexedSeq[DicomImage.PixelRating] = {
-    // list of offset coordinates for adjacent pixels
-    case class XY(x: Int, y: Int)
-    val neighbors = {
-      val nextTo = Seq(-1, 0, 1)
-      for (x <- nextTo; y <- nextTo; if (!((x == 0) && (y == 0)))) yield new XY(x, y)
-    }
+  // list of offset coordinates for adjacent pixels
+  private val neighbors = {
+    val nextTo = Seq(-1, 0, 1)
+    for (x <- nextTo; y <- nextTo; if (!((x == 0) && (y == 0)))) yield new Point(x, y)
+  }
+
+  private def findWorstPixels(count: Int): IndexedSeq[DicomImage.PixelRating] = {
 
     def ratePixel(x: Int, y: Int): Float = {
       val v = get(x, y)
-      val valid = neighbors.map(xy => new XY(x + xy.x, y + xy.y)).filter(xy => validXY(xy.x, xy.y))
+      val valid = neighbors.map(xy => new Point(x + xy.x, y + xy.y)).filter(xy => validPoint(xy.x, xy.y))
       valid.map(xy => Math.abs(get(xy.x, xy.y) - v)).sum / valid.size
     }
 
-    val ratingList = { for (x <- (0 until width); y <- (0 until height)) yield { new DicomImage.PixelRating(ratePixel(x, y), x, y) } }
+    val ratingList = { for (x <- (0 until width); y <- (0 until height)) yield { new DicomImage.PixelRating(ratePixel(x, y), new Point(x, y)) } }
     ratingList.sortWith((a, b) => (a.rating > b.rating)).take(count)
   }
 
@@ -69,6 +70,28 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
     worst.filter(w => Math.abs(w.rating - mean) > threshold)
   }
 
+  /**
+   * Given a list of pixel coordinates to correct, create a new <code>DicomImage</code> with
+   * each of the listed pixel values replaced by the average of it's neighbors.
+   */
+  def correctBadPixels(badPixelList: IndexedSeq[Point]): DicomImage = {
+
+    case class CorrectedPixel(x: Int, y: Int) {
+      val correctedValue: Float = {
+        val valueList = neighbors.map(n => new Point(n.x + x, n.y + y)).filter(n => validPoint(n.x, n.y)).map(p => get(p.x, p.y))
+        valueList.sum / valueList.size
+      }
+    }
+
+    val mutablePixelData = pixelData.map(row => row.toArray).toArray
+    val corrected = badPixelList.map(b => new CorrectedPixel(b.x, b.y))
+    corrected.map(cor => mutablePixelData(cor.y)(cor.x) = cor.correctedValue)
+    new DicomImage(mutablePixelData.map(row => row.toIndexedSeq).toIndexedSeq)
+  }
+
+  /**
+   * Construct a <code>BufferedImage</code>, mapping values low to high from black (0) to <code>color</code>.
+   */
   def toBufferedImage(color: Color): BufferedImage = {
 
     // calculate a lookup table once
@@ -122,7 +145,7 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
 object DicomImage {
 
-  case class PixelRating(rating: Float, x: Int, y: Int);
+  case class PixelRating(rating: Float, point: Point) extends Point(point.x, point.y)
 
   def getPixelData(attributeList: AttributeList): IndexedSeq[IndexedSeq[Float]] = {
     val pixDat = attributeList.getPixelData.getShortValues

@@ -39,10 +39,6 @@ object TestDicomImage {
       ImageIO.write(bufImage, "png", pngFile)
     }
 
-    val worst = dicomImage.findWorstPixels(10)
-
-    println("worst:\n    " + worst.mkString("\n    "))
-
     //    val sampleSize = 150
     //    val maxBadPixels = 10
     //    val stdDevMultiple = 10.0
@@ -54,13 +50,14 @@ object TestDicomImage {
     val badPixelImage = dicomImage.toBufferedImage(Color.GREEN)
 
     if (true) {
-
+      val radius = 3
+      val hw = radius * 2 + 1
       def makeBadPixelImage(bad: DicomImage.PixelRating) = {
-        val pngName = "target\\badPixels.png"
+        val pngName = "target\\badPixel" + bad.x + "-" + bad.y + ".png"
         val pngFile = new File(pngName)
+        val bufImage = ImageUtil.magnify(badPixelImage.getSubimage(bad.x - radius, bad.y - radius, hw, hw), 16)
         pngFile.delete
         ImageIO.write(bufImage, "png", pngFile)
-
       }
 
       badList.map(w => makeBadPixelImage(w))
@@ -75,13 +72,16 @@ object TestDicomImage {
       ImageIO.write(badPixelImage, "png", pngFile)
     }
 
-    //    println("maxBadPixels: " + maxBadPixels)
-    //    println("mean: " + mean)
-    //    println("variance: " + variance)
-    //    println("stdDev: " + stdDev)
-    //    def fmt(d: Double) = d.formatted("%6.1f")
-    //    worst.map(w => println("    diff: " + fmt(Math.abs(w.rating - mean)) + "    " + fmt(w.rating) + "  " + w.x + "," + w.y))
-    //    println
+    if (true) {
+      val pngName = "target\\correctedPixels.png"
+      val pngFile = new File(pngName)
+
+      val corrected = dicomImage.correctBadPixels(badList)
+      val correctedImage = corrected.toBufferedImage(Color.GREEN)
+      badList.map(w => ImageUtil.annotatePixel(correctedImage, w.x, w.y, Color.YELLOW, w.x + ", " + w.y))
+      pngFile.delete
+      ImageIO.write(correctedImage, "png", pngFile)
+    }
 
     println("TestDicomImage done")
 

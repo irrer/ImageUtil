@@ -6,6 +6,7 @@ import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.Point
 import java.awt.geom.Point2D
+import java.security.InvalidParameterException
 
 object ImageUtil {
 
@@ -56,5 +57,15 @@ object ImageUtil {
     val textPosition = findEmptySpace(textDimensions.width / 2.0, textDimensions.height)
 
     ImageText.drawTextCenteredAt(graphics, textPosition.x, textPosition.y, text) // TODO put back
+  }
+
+  def magnify(original: BufferedImage, factor: Int): BufferedImage = {
+    if (factor < 1) throw new InvalidParameterException("magnification factor must be 1 or greater.  Caller specified: " + factor)
+    val magnified = new BufferedImage(original.getWidth * factor, original.getHeight * factor, original.getType)
+    for (x <- (0 until original.getWidth); y <- (0 until original.getHeight)) {
+      val rgb = original.getRGB(x, y)
+      for (xm <- (0 until factor); ym <- (0 until factor)) magnified.setRGB(x * factor + xm, y * factor + ym, rgb)
+    }
+    magnified
   }
 }
