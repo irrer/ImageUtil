@@ -22,41 +22,34 @@ object ImageUtil {
   def annotatePixel(bufferedImage: BufferedImage, x: Double, y: Double, color: Color, text: String) = {
     val radius = 2.0
     // number of pixels between text and pixel
-    val margin = 2 + radius
+    val margin = 4 + radius
     val size = (radius * 2) + 2
     val color = Color.YELLOW
 
-    def findEmptySpace(xCenter: Double, yCenter: Double): Point = {
+    //    if (true) {
+    //      val graphics = getGraphics(bufferedImage)
+    //      for (x <- Seq(0, 200, 400); y <- Seq(0, 200, 400)) {
+    //        val hey = "hey there " + x + ", " + y
+    //
+    //        graphics.drawString(hey, x, y + graphics.getFontMetrics.getAscent)
+    //      }
+    //    }
 
-      val imageCenter = new Point2D.Double(bufferedImage.getWidth / 2.0, bufferedImage.getHeight / 2.0)
-
-      case class Posn(xPos: Double, yPos: Double) {
-        // lower values are better
-        val rating = new Point2D.Double(xPos, yPos).distance(imageCenter)
-        override def toString = "x,y: " + xPos + ", " + yPos + "    rating: " + rating.formatted("%6.1f")
-      }
-
-      val possibleLocations = Seq(
-        new Posn(x, y - yCenter - margin), // north
-        new Posn(x, y + yCenter + margin), // south
-        new Posn(x + xCenter + margin, y), // east
-        new Posn(x - xCenter - margin, y) // west
-      )
-
-      val best = possibleLocations.sortWith((a, b) => a.rating < b.rating).head
-
-      new Point(best.xPos.ceil.toInt, best.yPos.ceil.toInt)
-    }
+    val imageCenter = new Point2D.Double(bufferedImage.getWidth / 2.0, bufferedImage.getHeight / 2.0)
 
     val graphics = getGraphics(bufferedImage)
+
+    val ascent = graphics.getFontMetrics.getAscent
+    //val descent = graphics.getFontMetrics.getDescent
+    val textRect = graphics.getFontMetrics.getStringBounds(text, graphics)
+
+    val xx = if (x < imageCenter.getX) margin else -(textRect.getWidth + margin)
+    val yy = if (y < imageCenter.getY) margin + ascent else -(textRect.getHeight - graphics.getFontMetrics.getAscent + margin)
 
     graphics.setColor(color)
     graphics.drawRect((x - radius - 1).toInt, (y - radius - 1).toInt, size.toInt, size.toInt)
 
-    val textDimensions = ImageText.getTextDimensions(graphics, text)
-    val textPosition = findEmptySpace(textDimensions.width / 2.0, textDimensions.height)
-
-    ImageText.drawTextCenteredAt(graphics, textPosition.x, textPosition.y, text) // TODO put back
+    graphics.drawString(text, (x + xx).toFloat, (y + yy).toFloat)
   }
 
   def magnify(original: BufferedImage, factor: Int): BufferedImage = {

@@ -8,6 +8,8 @@ import java.awt.Graphics2D
 import java.awt.Font
 import java.awt.font.FontRenderContext
 import java.awt.Dimension
+import java.awt.Point
+import java.awt.geom.Rectangle2D
 
 object ImageText {
 
@@ -33,17 +35,35 @@ object ImageText {
     graphics.setFont(font)
   }
 
-  def getTextDimensions(graphics: Graphics2D, text: String): Dimension = {
+  def getTextDimensions(graphics: Graphics2D, text: String): Rectangle2D = {
     val frc = new FontRenderContext(null, true, false)
-    val rect = graphics.getFont.getStringBounds(text, frc)
-    // new Dimension(rect.getWidth.ceil.toInt, getFontHeight(graphics)) // TODO which way?
-    new Dimension(rect.getWidth.ceil.toInt, rect.getHeight.ceil.toInt)
+    //val rect = graphics.getFont.getStringBounds(text, frc)
+    val rect = graphics.getFontMetrics.getStringBounds(text, graphics)
+    rect
+  }
+
+  def XdrawTextCenteredAt(graphics: Graphics2D, x: Double, y: Double, text: String) = {
+    val rect = getTextDimensions(graphics, text)
+
+    val xPos = (x - rect.getX).toFloat // adjust horizontal
+    val yPos = (y + rect.getY).toFloat // adjust vertical, point to south west corner of text
+
+    //    val xPos = (x - textSize.getWidth / 2).toFloat // adjust horizontal
+    //    val yPos = (y - (textSize.getHeight / 2)).toFloat - 12 // adjust vertical, point to south west corner of text
+    graphics.drawString(text, xPos, yPos) // TODO fix to xPos, yPos
   }
 
   def drawTextCenteredAt(graphics: Graphics2D, x: Double, y: Double, text: String) = {
-    val textSize = getTextDimensions(graphics, text)
-    val xPos = (x - textSize.getWidth / 2).toFloat // adjust horizontal
-    val yPos = (y - (textSize.height / 4)).toFloat // adjust vertical, point to south west corner of text
+
+    //  val metrics = graphics.getFontMetrics
+
+    val rect = getTextDimensions(graphics, text)
+
+    val xPos = (x - rect.getX).toFloat // adjust horizontal
+    val yPos = (y + rect.getY).toFloat // adjust vertical, point to south west corner of text
+
+    //    val xPos = (x - textSize.getWidth / 2).toFloat // adjust horizontal
+    //    val yPos = (y - (textSize.getHeight / 2)).toFloat - 12 // adjust vertical, point to south west corner of text
     graphics.drawString(text, xPos, yPos) // TODO fix to xPos, yPos
   }
 

@@ -5,21 +5,6 @@
     <artifactId>ImgageUtil</artifactId>
     <version>0.0.1</version>
     <dependencies>
-        <dependency> <groupId>io.scif</groupId>                                      <artifactId>scifio</artifactId>                <version>0.33.0</version>        </dependency>
-        <dependency> <groupId>org.scijava</groupId>                                  <artifactId>scijava-common</artifactId>        <version>2.69.0</version>        </dependency>
-        <dependency> <groupId>net.imagej</groupId>                                   <artifactId>imagej-common</artifactId>         <version>0.24.4</version>        </dependency>
-        <dependency> <groupId>net.imglib2</groupId>                                  <artifactId>imglib2</artifactId>               <version>4.6.1</version>         </dependency>
-        <dependency> <groupId>edu.ucar</groupId>                                     <artifactId>udunits</artifactId>               <version>4.3.18</version>        </dependency>
-        <dependency> <groupId>com.googlecode.gentyref</groupId>                      <artifactId>gentyref</artifactId>              <version>1.1.0</version>         </dependency>
-        <dependency> <groupId>io.scif</groupId>                                      <artifactId>scifio-jai-imageio</artifactId>    <version>1.1.1</version>         </dependency>
-        <dependency> <groupId>net.imglib2</groupId>                                  <artifactId>imglib2-roi</artifactId>           <version>0.4.6</version>         </dependency>
-        <dependency> <groupId>io.scf</groupId>                                       <artifactId>scifio</artifactId>                <version>0.33.0</version>        </dependency>
-        <dependency> <groupId>org.bushe</groupId>                                    <artifactId>eventbus</artifactId>              <version>1.4</version>           </dependency>
-        <dependency> <groupId>net.imagej</groupId>                                   <artifactId>ij</artifactId>                    <version>1.51w</version>         </dependency>
-        <dependency> <groupId>net.imglib2</groupId>                                  <artifactId>imglib2-ij</artifactId>            <version>2.0.0-beta-39</version> </dependency>
-        <dependency> <groupId>net.imglib2</groupId>                                  <artifactId>imglib2-algorithm</artifactId>     <version>0.8.2</version>         </dependency>
-        <dependency> <groupId>net.imglib2</groupId>                                  <artifactId>imglib2-algorithm-gpl</artifactId> <version>0.2.2</version>         </dependency>
-        <dependency> <groupId>com.googlecode.efficient-java-matrix-library</groupId> <artifactId>ejml</artifactId>                  <version>0.24</version>          </dependency>
         <dependency> <groupId>pixelmed</groupId>                                     <artifactId>pixelmed</artifactId>              <version>20180401</version>      </dependency>
    </dependencies>
     <!--
