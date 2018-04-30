@@ -1,22 +1,32 @@
 package edu.umro.ImageUtil.test;
 
-import com.pixelmed.dicom.AttributeList
-import com.pixelmed.dicom.TagFromName
-import java.awt.image.BufferedImage
-import java.awt.Color
-import java.io.File
-import javax.imageio.ImageIO
-import scala.Left
-import scala.Right
-import edu.umro.ImageUtil.DicomImage
-import edu.umro.ImageUtil.ImageUtil
 import edu.umro.ImageUtil.LocateEdge
+import org.scalatest.FlatSpec
+import org.scalatest.Matchers
 
-//import scala.collection.JavaConverters._
+class TestLocateEdge extends FlatSpec with Matchers {
 
-object TestLocateEdge {
+  //def main(args: Array[String]): Unit = {
 
-  def main(args: Array[String]): Unit = {
+  // Build a data profile that looks like this:
+  //
+  //                         ----------
+  //                        /
+  //                       /
+  //                      /
+  //                     /
+  //                    /
+  //                   /
+  //                  /
+  //                 /
+  //                /
+  //               /
+  //    __________/
+  //
+
+  "measured edge" should "be close calculated edge" in {
+
+    val expectedAnswer = 15.0
 
     val count = 10
     val range = (0 until count)
@@ -31,6 +41,14 @@ object TestLocateEdge {
 
     println("data.size: " + data.size)
     println("midVal: " + midVal)
+
+    val success = (Math.abs(expectedAnswer - midVal) / expectedAnswer) < 1.0e-8
+
+    println("success: " + success)
+
+    success should be(true)
   }
+
+  //}
 
 }
