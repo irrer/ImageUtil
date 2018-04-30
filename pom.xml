@@ -2,8 +2,8 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>edu.umro</groupId>
-    <artifactId>ImgageUtil</artifactId>
-    <version>0.0.1</version>
+    <artifactId>ImgageUtil_2.12</artifactId>
+    <version>0.0.1</version>    
     <dependencies>
         <dependency> <groupId>pixelmed</groupId>      <artifactId>pixelmed</artifactId>       <version>20180401</version>                        </dependency>
         <dependency> <groupId>org.scalatest</groupId> <artifactId>scalatest_2.12</artifactId> <version>3.2.0-SNAP9</version> <scope>test</scope> </dependency>
@@ -78,19 +78,6 @@
 
         </plugins>
     </build>
-
-    <repositories>
-        <repository>
-            <id>ImageJ</id>
-            <name>ImageJ repository</name>
-            <url>http://maven.imagej.net/content/repositories/releases/</url>
-        </repository>
-        <repository>
-            <id>ImageJNet</id>
-            <name>ImageJNet repository</name>
-            <url>https://maven.imagej.net/content/groups/public/</url>
-        </repository>
-    </repositories>
 
     <distributionManagement>
     </distributionManagement>

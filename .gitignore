@@ -25,6 +25,7 @@ target/
 .project
 .springBeans
 .settings/
+.externalToolBuilders/
 .cache
 .cache-main
 .cache-tests
