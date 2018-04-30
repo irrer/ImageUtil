@@ -14,42 +14,50 @@ object LocateEdge {
   private def toCubicSpline(data: IndexedSeq[Float]): CubicSpline = new CubicSpline(data.indices.toArray.map(s => s.toDouble), data.toArray.map(f => f.toDouble))
 
   /**
+   * Get the value (height) of the edge.
+   */
+  private def getEdgeVal(profile: IndexedSeq[Float], plateauSampleSize: Int): Float = {
+    val sorted = profile.sorted
+    val lower = sorted.take(plateauSampleSize).sum / plateauSampleSize
+    val upper = sorted.takeRight(plateauSampleSize).sum / plateauSampleSize
+    val edgeVal = (upper + lower) / 2
+    edgeVal
+  }
+
+  /** Perform the binary search this many times to be accurate to approximately this many bits of precision. */
+  private val maxSearchIteration = 64
+
+  private def binarySearch(lo: Double, hi: Double, iteration: Int, spline: CubicSpline, edgeVal: Float): Double = {
+    val loVal = spline.evaluate(lo)
+    val hiVal = spline.evaluate(hi)
+    val mid = (hi + lo) / 2
+    val midVal = spline.evaluate(mid)
+
+    0 match {
+      case _ if (iteration > maxSearchIteration) => mid
+      case _ if (edgeVal < midVal) => binarySearch(lo, mid, iteration + 1, spline, edgeVal)
+      case _ if (edgeVal > midVal) => binarySearch(mid, hi, iteration + 1, spline, edgeVal)
+      case _ if (edgeVal == midVal) => mid // wildly improbable, but it is the perfect answer and improves testability
+    }
+  }
+
+  /**
    * Locate an edge to a precise degree.  The assumptions made are that there are both a low and high plateau that can be
-   * used as lower and upper value bounds, and that there is a single, relatively smooth edge.
+   * used as lower and upper value bounds, and that there is a single, relatively smooth edge.  This function defines the
+   * edge as halfway between the upper and lower plateaus.
    */
   def locateEdge(profile: IndexedSeq[Float], plateauSampleSize: Int): Double = {
     if ((plateauSampleSize * 2) >= profile.size)
       throw new InvalidParameterException("profile should be more than twice the size of the plateauSampleSize.  profile size: " + profile.size + "    plateauSampleSize: " + plateauSampleSize)
 
-    val sorted = profile.sorted
-    val lower = sorted.take(plateauSampleSize).sum / plateauSampleSize
-    val upper = sorted.takeRight(plateauSampleSize).sum / plateauSampleSize
-    val halfwayVal = (upper + lower) / 2
+    val edgeVal = getEdgeVal(profile, plateauSampleSize)
 
     // index of profile that has the largest value less then halfway
-    val nearEdge = profile.indices.filter(i => profile(i) < halfwayVal).maxBy(i => profile(i))
+    val closestToEdge = profile.indices.filter(i => profile(i) < edgeVal).maxBy(i => profile(i))
 
     val spline = toCubicSpline(profile)
 
-    val maxSearchIteration = 64 // accurate to approximately this many bits of precision
-
-    def binarySearch(lo: Double, hi: Double, iteration: Int): Double = {
-      val loVal = spline.evaluate(lo)
-      val hiVal = spline.evaluate(hi)
-      val mid = (hi + lo) / 2
-      val midVal = spline.evaluate(mid)
-
-      println("mid: " + mid + "    midVal: " + midVal) // TODO rm
-
-      0 match {
-        case _ if (iteration > maxSearchIteration) => mid
-        case _ if (halfwayVal < midVal) => binarySearch(lo, mid, iteration + 1)
-        case _ if (halfwayVal > midVal) => binarySearch(mid, hi, iteration + 1)
-        case _ if (halfwayVal == midVal) => mid // wildly improbable, but it is the perfect answer and improves testability
-      }
-    }
-
-    binarySearch(nearEdge - 1.0, nearEdge + 1, 0)
+    binarySearch(closestToEdge - 1.0, closestToEdge + 1, 0, spline, edgeVal)
   }
 
 }
