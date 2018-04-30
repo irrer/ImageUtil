@@ -26,7 +26,7 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
     val w = (if (rectangle.getX + rectangle.getWidth > width) width - rectangle.getX else rectangle.getWidth).toInt
     val h = (if (rectangle.getY + rectangle.getHeight > height) height - rectangle.getY else rectangle.getHeight).toInt
 
-    val pixDat = (0 until h).map(row => pixelData(y + row).drop(x).take(width))
+    val pixDat = pixelData.indices.map(row => pixelData(y + row).drop(x).take(width))
     new DicomImage(pixDat)
   }
 
@@ -41,6 +41,21 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def validPoint(x: Int, y: Int): Boolean = {
     val ok = (x >= 0) && (x < width) && (y >= 0) && (y < height)
     ok
+  }
+
+  /**
+   * Get the sums of the columns of <code>pixelData</code>
+   */
+  def columnSums: IndexedSeq[Float] = {
+    def colSum(x: Int) = { for (y <- pixelData.indices) yield { get(x, y) } }.sum
+    (0 until width).map(x => colSum(x))
+  }
+
+  /**
+   * Get the sums of the rows of <code>pixelData</code>
+   */
+  def rowSums = {
+    pixelData.map(row => row.sum)
   }
 
   // list of offset coordinates for adjacent pixels
@@ -91,33 +106,14 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
   /**
    * Construct a <code>BufferedImage</code>, mapping values low to high from black (0) to <code>color</code>.
+   *
+   * @param rgbColorMap: Colors to use from 0 to 255
+   *
+   * @param min: minimum pixel value
+   *
+   * @param max: maximum pixel value
    */
-  def toBufferedImage(color: Color): BufferedImage = {
-
-    // calculate a lookup table once
-    val rgbTable = {
-      val red = color.getRed
-      val green = color.getGreen
-      val blue = color.getBlue
-
-      def iToRGB(i: Int) = {
-
-        val gg = green * (i / 256.0)
-
-        def toColor(c: Int, i: Int, shift: Int) = {
-          val lev = (c * (i / 256.0)).round.toInt match {
-            case _ if (i < 0) => 0
-            case _ if (i > 255) => 255
-            case i => i
-          }
-          lev << shift
-        }
-
-        toColor(red, i, 16) + toColor(green, i, 8) + toColor(blue, i, 0)
-      }
-
-      (0 until 256).map(i => iToRGB(i))
-    }
+  def toBufferedImage(rgbColorMap: IndexedSeq[Int], min: Float, max: Float): BufferedImage = {
 
     val ratio = 256 / (max - min)
 
@@ -128,9 +124,9 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
       val i = (level * ratio).round.toInt
 
       i match {
-        case _ if (i < 0) => rgbTable(0)
-        case _ if (i > 255) => rgbTable(255)
-        case _ => rgbTable(i)
+        case _ if (i < 0) => rgbColorMap(0)
+        case _ if (i > 255) => rgbColorMap(255)
+        case _ => rgbColorMap(i)
       }
     }
 
@@ -141,6 +137,9 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
     bufImage
   }
 
+  def toBufferedImage(rgbColorMap: IndexedSeq[Int]): BufferedImage = toBufferedImage(rgbColorMap, min, max)
+
+  def toBufferedImage(color: Color): BufferedImage = toBufferedImage(ImageUtil.rgbColorMap(color), min, max)
 }
 
 object DicomImage {

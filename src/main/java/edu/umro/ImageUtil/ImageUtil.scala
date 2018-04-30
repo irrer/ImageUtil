@@ -19,21 +19,17 @@ object ImageUtil {
     graphics
   }
 
+  /**
+   * Write the given text on the image near the given pixel.  Offset it in X and Y so that it does not obscure the
+   * pixel, and use an offset that will still be inside the image by putting it roughly between the pixel and the
+   * center of the image.
+   */
   def annotatePixel(bufferedImage: BufferedImage, x: Double, y: Double, color: Color, text: String) = {
     val radius = 2.0
     // number of pixels between text and pixel
     val margin = 4 + radius
     val size = (radius * 2) + 2
     val color = Color.YELLOW
-
-    //    if (true) {
-    //      val graphics = getGraphics(bufferedImage)
-    //      for (x <- Seq(0, 200, 400); y <- Seq(0, 200, 400)) {
-    //        val hey = "hey there " + x + ", " + y
-    //
-    //        graphics.drawString(hey, x, y + graphics.getFontMetrics.getAscent)
-    //      }
-    //    }
 
     val imageCenter = new Point2D.Double(bufferedImage.getWidth / 2.0, bufferedImage.getHeight / 2.0)
 
@@ -52,6 +48,9 @@ object ImageUtil {
     graphics.drawString(text, (x + xx).toFloat, (y + yy).toFloat)
   }
 
+  /**
+   * Given an image, magnify it by the given factor by mapping each <b>1 * 1</b> pixel to a <b>factor * factor</b> pixel.
+   */
   def magnify(original: BufferedImage, factor: Int): BufferedImage = {
     if (factor < 1) throw new InvalidParameterException("magnification factor must be 1 or greater.  Caller specified: " + factor)
     val magnified = new BufferedImage(original.getWidth * factor, original.getHeight * factor, original.getType)
@@ -60,5 +59,39 @@ object ImageUtil {
       for (xm <- (0 until factor); ym <- (0 until factor)) magnified.setRGB(x * factor + xm, y * factor + ym, rgb)
     }
     magnified
+  }
+
+  /**
+   * Find the center of mass of a set of points, indexed starting from 0.
+   */
+  def centerOfMass(massList: IndexedSeq[Float]): Float = {
+    val massSum = massList.sum
+    if (massList.isEmpty) 0.toFloat
+    else { massList.indices.map(i => i * massList(i)).sum } / massSum
+  }
+
+  /**
+   * Given a color, map values 0 to 255 (color depth) from black (0) to <code>color</code>.
+   */
+  def rgbColorMap(color: Color): IndexedSeq[Int] = {
+    val red = color.getRed
+    val green = color.getGreen
+    val blue = color.getBlue
+
+    def iToRGB(i: Int) = {
+
+      def toColor(c: Int, i: Int, shift: Int) = {
+        val lev = (c * (i / 256.0)).round.toInt match {
+          case _ if (i < 0) => 0
+          case _ if (i > 255) => 255
+          case i => i
+        }
+        lev << shift
+      }
+
+      toColor(red, i, 16) + toColor(green, i, 8) + toColor(blue, i, 0)
+    }
+
+    (0 until 256).map(i => iToRGB(i))
   }
 }
