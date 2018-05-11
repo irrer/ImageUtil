@@ -58,6 +58,26 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
     pixelData.map(row => row.sum)
   }
 
+  /**
+   * Get a list of the smallest pixel values.
+   *
+   * @param count: Number of pixel values to get.
+   */
+  // TODO test this
+  def getMinPixelValues(count: Int): IndexedSeq[Float] = {
+    pixelData.foldLeft(IndexedSeq[Float]())((list, row) => (list ++ row).sorted.take(count))
+  }
+
+  /**
+   * Get a list of the largest pixel values.
+   *
+   * @param count: Number of pixel values to get.
+   */
+  // TODO test this
+  def getMaxPixelValues(count: Int): IndexedSeq[Float] = {
+    pixelData.foldLeft(IndexedSeq[Float]())((list, row) => (row ++ list).sorted.takeRight(count))
+  }
+
   // list of offset coordinates for adjacent pixels
   private val neighbors = {
     val nextTo = Seq(-1, 0, 1)
