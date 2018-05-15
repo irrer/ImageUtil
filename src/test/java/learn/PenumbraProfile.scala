@@ -57,8 +57,8 @@ object PenumbraProfile {
         } else {
           image.toBufferedImage(Color.green)
         }
-        badPixelList.map(w => ImageUtil.annotatePixel(bufImage, w.x, w.y, Color.YELLOW, w.x + ", " + w.y))
-        val imageFileName = file.getName.toLowerCase.replaceAll(".dcm$", "_" + badPixelList.size + ".png")
+        badPixelList.map(w => ImageUtil.annotatePixel(bufImage, w.x, w.y, Color.YELLOW, w.x + ", " + w.y, true))
+        val imageFileName = file.getName.replaceAll(".dcm$", ".png").replaceAll(".DCM$", ".png")
         val imageFile = new File(file.getParentFile, imageFileName)
         imageFile.delete
         ImageIO.write(bufImage, "png", imageFile)

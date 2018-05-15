@@ -63,8 +63,7 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
    *
    * @param count: Number of pixel values to get.
    */
-  // TODO test this
-  def getMinPixelValues(count: Int): IndexedSeq[Float] = {
+  def minPixelValues(count: Int): IndexedSeq[Float] = {
     pixelData.foldLeft(IndexedSeq[Float]())((list, row) => (list ++ row).sorted.take(count))
   }
 
@@ -73,8 +72,7 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
    *
    * @param count: Number of pixel values to get.
    */
-  // TODO test this
-  def getMaxPixelValues(count: Int): IndexedSeq[Float] = {
+  def maxPixelValues(count: Int): IndexedSeq[Float] = {
     pixelData.foldLeft(IndexedSeq[Float]())((list, row) => (row ++ list).sorted.takeRight(count))
   }
 

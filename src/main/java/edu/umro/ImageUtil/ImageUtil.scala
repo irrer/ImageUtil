@@ -24,7 +24,7 @@ object ImageUtil {
    * pixel, and use an offset that will still be inside the image by putting it roughly between the pixel and the
    * center of the image.
    */
-  def annotatePixel(bufferedImage: BufferedImage, x: Double, y: Double, color: Color, text: String) = {
+  def annotatePixel(bufferedImage: BufferedImage, x: Double, y: Double, color: Color, text: String, encircle: Boolean) = {
     val radius = 2.0
     // number of pixels between text and pixel
     val margin = 4 + radius
@@ -43,7 +43,7 @@ object ImageUtil {
     val yy = if (y < imageCenter.getY) margin + ascent else -(textRect.getHeight - graphics.getFontMetrics.getAscent + margin)
 
     graphics.setColor(color)
-    graphics.drawRect((x - radius - 1).toInt, (y - radius - 1).toInt, size.toInt, size.toInt)
+    if (encircle) graphics.drawRect((x - radius - 1).toInt, (y - radius - 1).toInt, size.toInt, size.toInt)
 
     graphics.drawString(text, (x + xx).toFloat, (y + yy).toFloat)
   }
