@@ -7,7 +7,7 @@ import java.awt.Color
 import java.awt.Rectangle
 import java.awt.Point
 
-class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
+class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
 
   val Rows = pixelData.size
@@ -152,6 +152,14 @@ class DicomImage(pixelData: IndexedSeq[IndexedSeq[Float]]) {
     val corrected = badPixelList.map(b => new CorrectedPixel(b.x, b.y))
     corrected.map(cor => mutablePixelData(cor.y)(cor.x) = cor.correctedValue)
     new DicomImage(mutablePixelData.map(row => row.toIndexedSeq).toIndexedSeq)
+  }
+
+  /**
+   * Given a flood field, divide every pixel in this image by every pixel in the flood field.
+   */
+  def biasCorrect(floodImage: DicomImage): DicomImage = {
+    val unbiased = (0 until height).map(row => (0 until width).map(col => pixelData(row)(col) / floodImage.pixelData(row)(col)))
+    new DicomImage(unbiased)
   }
 
   /**

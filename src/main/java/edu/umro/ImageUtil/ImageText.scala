@@ -42,28 +42,12 @@ object ImageText {
     rect
   }
 
-  def XdrawTextCenteredAt(graphics: Graphics2D, x: Double, y: Double, text: String) = {
-    val rect = getTextDimensions(graphics, text)
-
-    val xPos = (x - rect.getX).toFloat // adjust horizontal
-    val yPos = (y + rect.getY).toFloat // adjust vertical, point to south west corner of text
-
-    //    val xPos = (x - textSize.getWidth / 2).toFloat // adjust horizontal
-    //    val yPos = (y - (textSize.getHeight / 2)).toFloat - 12 // adjust vertical, point to south west corner of text
-    graphics.drawString(text, xPos, yPos) // TODO fix to xPos, yPos
-  }
-
   def drawTextCenteredAt(graphics: Graphics2D, x: Double, y: Double, text: String) = {
-
-    //  val metrics = graphics.getFontMetrics
-
     val rect = getTextDimensions(graphics, text)
+    // adjust vertical, point to south west corner of text
+    val xPos = (x - rect.getWidth / 2).toFloat // adjust horizontal
+    val yPos = (y + (rect.getHeight - graphics.getFontMetrics.getAscent + graphics.getFontMetrics.getDescent) / 2).toFloat
 
-    val xPos = (x - rect.getX).toFloat // adjust horizontal
-    val yPos = (y + rect.getY).toFloat // adjust vertical, point to south west corner of text
-
-    //    val xPos = (x - textSize.getWidth / 2).toFloat // adjust horizontal
-    //    val yPos = (y - (textSize.getHeight / 2)).toFloat - 12 // adjust vertical, point to south west corner of text
     graphics.drawString(text, xPos, yPos) // TODO fix to xPos, yPos
   }
 

@@ -57,7 +57,7 @@ object TestDicomImage {
 
     println("Bad pixels: " + badList.mkString("\n    ", "\n    ", "\n    "))
 
-    val badPixelImage = dicomImage.toBufferedImage(Color.GREEN)
+    val badPixelImage = dicomImage.toBufferedImage(Color.white)
 
     if (true) {
       val radius = 3
@@ -77,7 +77,7 @@ object TestDicomImage {
       val pngName = "target\\badPixels.png"
       val pngFile = new File(pngName)
 
-      badList.map(w => ImageUtil.annotatePixel(badPixelImage, w.x, w.y, Color.YELLOW, w.x + ", " + w.y, true))
+      badList.map(w => ImageUtil.annotatePixel(badPixelImage, w.x, w.y, w.x + ", " + w.y, true))
       pngFile.delete
       ImageIO.write(badPixelImage, "png", pngFile)
     }
@@ -87,8 +87,8 @@ object TestDicomImage {
       val pngFile = new File(pngName)
 
       val corrected = dicomImage.correctBadPixels(badList)
-      val correctedImage = corrected.toBufferedImage(Color.GREEN)
-      badList.map(w => ImageUtil.annotatePixel(correctedImage, w.x, w.y, Color.YELLOW, w.x + ", " + w.y, true))
+      val correctedImage = corrected.toBufferedImage(Color.white)
+      badList.map(w => ImageUtil.annotatePixel(correctedImage, w.x, w.y, w.x + ", " + w.y, true))
       pngFile.delete
       ImageIO.write(correctedImage, "png", pngFile)
     }

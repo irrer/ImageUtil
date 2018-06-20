@@ -20,16 +20,25 @@ object ImageUtil {
   }
 
   /**
+   * Get the 0 - 255 brightness of a pixel by averaging the red+green+blue levels.
+   */
+  def brightnessOf(color: Color): Double = (color.getRed + color.getGreen + color.getBlue) / 3.0
+
+  /**
+   * Get the 0 - 255 brightness of a pixel by averaging the red+green+blue levels.
+   */
+  def brightnessOf(rgb: Int): Double = brightnessOf(new Color(rgb))
+
+  /**
    * Write the given text on the image near the given pixel.  Offset it in X and Y so that it does not obscure the
    * pixel, and use an offset that will still be inside the image by putting it roughly between the pixel and the
    * center of the image.
    */
-  def annotatePixel(bufferedImage: BufferedImage, x: Double, y: Double, color: Color, text: String, encircle: Boolean) = {
+  def annotatePixel(bufferedImage: BufferedImage, x: Double, y: Double, text: String, encircle: Boolean) = {
     val radius = 2.0
     // number of pixels between text and pixel
     val margin = 4 + radius
     val size = (radius * 2) + 2
-    val color = Color.YELLOW
 
     val imageCenter = new Point2D.Double(bufferedImage.getWidth / 2.0, bufferedImage.getHeight / 2.0)
 
@@ -42,6 +51,19 @@ object ImageUtil {
     val xx = if (x < imageCenter.getX) margin else -(textRect.getWidth + margin)
     val yy = if (y < imageCenter.getY) margin + ascent else -(textRect.getHeight - graphics.getFontMetrics.getAscent + margin)
 
+    val color = {
+      val width = textRect.getWidth.toInt
+      val height = textRect.getHeight.toInt
+      val xMin = (x + xx).toInt
+      val yMin = (y + yy).toInt
+      val xMax = xMin + width
+      val yMax = yMin + height
+      val xRange = Math.max(xMin, 0) until Math.min(xMax, bufferedImage.getWidth)
+      val yRange = Math.max(yMin, 0) until Math.min(yMax, bufferedImage.getHeight)
+      val rgbList = for (x <- xRange; y <- yRange) yield bufferedImage.getRGB(x, y)
+      val brightness = rgbList.map(rgb => brightnessOf(rgb)).sum / (width * height)
+      if (brightness < 128) Color.white else Color.black
+    }
     graphics.setColor(color)
     if (encircle) graphics.drawRect((x - radius - 1).toInt, (y - radius - 1).toInt, size.toInt, size.toInt)
 
