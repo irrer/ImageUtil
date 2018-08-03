@@ -88,8 +88,10 @@ object ImageUtil {
    */
   def centerOfMass(massList: IndexedSeq[Float]): Float = {
     val massSum = massList.sum
-    if (massList.isEmpty) 0.toFloat
-    else { massList.indices.map(i => i * massList(i)).sum } / massSum
+    if (massList.isEmpty)
+      0.toFloat
+    else
+      { massList.indices.map(i => i * massList(i)).sum } / massSum
   }
 
   /**

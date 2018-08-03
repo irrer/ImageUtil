@@ -44,16 +44,25 @@ object LocateEdge {
   /**
    * Locate an edge to a precise degree.  The assumptions made are that there are both a low and high plateau that can be
    * used as lower and upper value bounds, and that there is a single, relatively smooth edge.  This function defines the
-   * edge as the point closest to the halfway value.
+   * edge as the point closest to the threshold value.
+   *
+   * For edge location to work, some values in the profile must be greater than the threshold and some must be
+   * greater than the threshold.  If this is not true, then a value of -1 is returned.
    */
-  def locateEdge(profile: IndexedSeq[Float], halfway: Double): Double = {
+  def locateEdge(profile: IndexedSeq[Float], threshold: Double): Double = {
+    val lessThan = profile.indices.filter(i => profile(i) < threshold)
+    val greaterThan = profile.indices.filter(i => profile(i) > threshold)
 
-    // index of profile that has the largest value less then halfway
-    val closestToEdge = profile.indices.filter(i => profile(i) < halfway).maxBy(i => profile(i))
+    if (lessThan.isEmpty || greaterThan.isEmpty)
+      -1
+    else {
+      // index of profile that has the largest value less then halfway
+      val closestToEdge = lessThan.maxBy(i => profile(i))
 
-    val spline = toCubicSpline(profile)
+      val spline = toCubicSpline(profile)
 
-    binarySearch(closestToEdge - 1.0, closestToEdge + 1, 0, spline, halfway)
+      binarySearch(closestToEdge - 1.0, closestToEdge + 1, 0, spline, threshold)
+    }
   }
 
 }

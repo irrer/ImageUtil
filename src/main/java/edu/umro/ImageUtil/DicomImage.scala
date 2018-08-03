@@ -76,14 +76,19 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     pixelData.foldLeft(IndexedSeq[Float]())((list, row) => (row ++ list).sorted.takeRight(count))
   }
 
-  // list of offset coordinates for adjacent pixels
+  /**
+   *  List of offset coordinates for adjacent pixels not including the center pixel.  For
+   *  most pixels this is a list of the eight neighbors.
+   */
   private val neighbors = {
     val nextTo = Seq(-1, 0, 1)
     for (x <- nextTo; y <- nextTo; if (!((x == 0) && (y == 0)))) yield new Point(x, y)
   }
 
-  private def findWorstPixels(count: Int): IndexedSeq[DicomImage.PixelRating] = {
-
+  /**
+   * Use a quick but coarse algorithm to scan the entire image and make a list of the worst pixels.
+   */
+  private def findWorstPixelsQuickly(count: Int): IndexedSeq[DicomImage.PixelRating] = {
     def ratePixel(x: Int, y: Int): Float = {
       val v = get(x, y)
       val valid = neighbors.map(xy => new Point(x + xy.x, y + xy.y)).filter(xy => validPoint(xy.x, xy.y))
@@ -92,6 +97,18 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
     val ratingList = { for (x <- (0 until width); y <- (0 until height)) yield { new DicomImage.PixelRating(ratePixel(x, y), new Point(x, y)) } }
     ratingList.sortWith((a, b) => (a.rating > b.rating)).take(count)
+  }
+
+  /**
+   * Find the worst pixels in terms of how severely they differ from their 8 neighbors.
+   */
+  private def findWorstPixels(sampleSize: Int, maxBadPixels: Int, stdDevMultiple: Double): IndexedSeq[DicomImage.PixelRating] = {
+    val worst = findWorstPixelsQuickly(sampleSize)
+    val mean = worst.drop(maxBadPixels).map(w => w.rating).sum / (worst.size - maxBadPixels)
+    val variance = worst.drop(maxBadPixels).map(w => (w.rating - mean) * (w.rating - mean)).sum / (worst.size - maxBadPixels)
+    val stdDev = Math.sqrt(variance)
+    val threshold = stdDevMultiple * stdDev
+    worst.filter(w => Math.abs(w.rating - mean) > threshold)
   }
 
   /**
@@ -107,18 +124,6 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   }
 
   /**
-   * Find the worst pixels in terms of how severely they differ from their 8 neighbors.
-   */
-  private def findWorstPixels(sampleSize: Int, maxBadPixels: Int, stdDevMultiple: Double): IndexedSeq[DicomImage.PixelRating] = {
-    val worst = findWorstPixels(sampleSize)
-    val mean = worst.drop(maxBadPixels).map(w => w.rating).sum / (worst.size - maxBadPixels)
-    val variance = worst.drop(maxBadPixels).map(w => (w.rating - mean) * (w.rating - mean)).sum / (worst.size - maxBadPixels)
-    val stdDev = Math.sqrt(variance)
-    val threshold = stdDevMultiple * stdDev
-    worst.filter(w => Math.abs(w.rating - mean) > threshold)
-  }
-
-  /**
    * Make a list of all the bad pixels in this image.
    *
    * @param sampleSize: Number of pixels to use as the 'normal' group.  200 is a good value.
@@ -131,7 +136,8 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
    * of 1.0 would mark good pixels as bad.
    *
    */
-  def identifyBadPixels(sampleSize: Int, maxBadPixels: Int, stdDevMultiple: Double): IndexedSeq[DicomImage.PixelRating] = {
+  def identifyBadPixels(sampleSize: Int, maxBadPixels: Int, stdDev: Double): IndexedSeq[DicomImage.PixelRating] = {
+    val stdDevMultiple = stdDev + 1
     findWorstPixels(sampleSize, maxBadPixels, stdDevMultiple).filter(bad => isGenuinelyBadPixel(bad, stdDevMultiple))
   }
 
