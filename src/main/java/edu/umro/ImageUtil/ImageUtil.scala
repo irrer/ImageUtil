@@ -15,7 +15,7 @@ object ImageUtil {
    */
   def getGraphics(bufferedImage: BufferedImage): Graphics2D = {
     val graphics = bufferedImage.getGraphics.asInstanceOf[Graphics2D]
-    graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_GASP)
+    graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     graphics
   }
 
