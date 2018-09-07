@@ -118,4 +118,44 @@ object ImageUtil {
 
     (0 until 256).map(i => iToRGB(i))
   }
+
+  /**
+   * Given a range, return a list of major graticule positions within that
+   * range that will make a user friendly display.
+   *
+   * @param min: Minimum value of range to be displayed
+   *
+   * @param max: Maximum value of range to be displayed
+   *
+   * @param maxCount: Maximum number of graticules to be returned.  Must be greater than 0.
+   */
+  def graticule(min: Double, max: Double, maxCount: Int): Seq[Double] = {
+    val range = (max - min).abs
+    val majorCandidates: Seq[Double] = Seq(1, 5, 10, 20, 25)
+    val multiple = Math.pow(10.0, Math.log10(range).floor - 2)
+
+    def getIncrement(mult: Double): Double = {
+      def works(grat: Double): Boolean = {
+        maxCount >= (range / grat)
+      }
+      majorCandidates.map(c => c * mult).find(c => works(c)) match {
+        case Some(c) => c
+        case _ => getIncrement(mult * 10)
+      }
+    }
+
+    def modulo(x: Double, mod: Double): Double = {
+      if (x < 0) -((-x) % mod) else x % mod
+    }
+
+    val increment = getIncrement(multiple)
+
+    val lo = Math.min(min, max)
+    val hi = Math.max(min, max)
+
+    val begin = ((lo - (lo % increment)) / increment).round.toInt
+    val end = ((hi - (hi % increment)) / increment).round.toInt
+    val gratList = for (g <- (begin - 2) to (end + 2); if ((g * increment) >= lo) && ((g * increment) <= hi)) yield (g * increment)
+    if (min < max) gratList else gratList.reverse
+  }
 }
