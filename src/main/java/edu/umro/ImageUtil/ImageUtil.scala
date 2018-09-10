@@ -7,6 +7,7 @@ import java.awt.RenderingHints
 import java.awt.Point
 import java.awt.geom.Point2D
 import java.security.InvalidParameterException
+import java.awt.BasicStroke
 
 object ImageUtil {
 
@@ -28,6 +29,16 @@ object ImageUtil {
    * Get the 0 - 255 brightness of a pixel by averaging the red+green+blue levels.
    */
   def brightnessOf(rgb: Int): Double = brightnessOf(new Color(rgb))
+
+  /**
+   * Solid line stroke / style
+   */
+  val solidLine = new BasicStroke
+
+  /**
+   * Set line drawing to solid.
+   */
+  def setSolidLine(graphics: Graphics2D) = graphics.setStroke(solidLine)
 
   /**
    * Write the given text on the image near the given pixel.  Offset it in X and Y so that it does not obscure the
