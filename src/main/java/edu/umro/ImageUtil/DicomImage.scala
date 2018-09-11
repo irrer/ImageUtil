@@ -204,6 +204,50 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def toBufferedImage(rgbColorMap: IndexedSeq[Int]): BufferedImage = toBufferedImage(rgbColorMap, min, max)
 
   def toBufferedImage(color: Color): BufferedImage = toBufferedImage(ImageUtil.rgbColorMap(color), min, max)
+
+  /**
+   * Create a buffered image of this DICOM image using multiple colors to give a deeper color depth of 1276 than the standard 256.
+   */
+  def toDeepColorBufferedImage(minimum: Float, maximum: Float): BufferedImage = {
+
+    val range = maximum - minimum
+
+    /**
+     * Given a pixel value, return an RGB color
+     */
+    def p2Color(pixel: Float): Int = {
+      val scaledPixel = {
+        { (pixel - minimum) / range } match {
+          case p if (p < minimum) => minimum
+          case p if (p > maximum) => maximum
+          case p => p
+        }
+
+      }
+      val a = (1 - scaledPixel) / 0.2
+      val X = Math.floor(a).toInt
+      val Y = Math.floor(255 * (a - X)).toInt
+
+      val rgb = X match {
+        case 0 => (255, Y, 0)
+        case 1 => (255 - Y, 255, 0)
+        case 2 => (0, 255, Y)
+        case 3 => (0, 255 - Y, 255)
+        case 4 => (Y, 0, 255)
+        case 5 => (255, 0, 255)
+        case _ => (255, 0, 255) // pixel outside range
+      }
+      (rgb._1 << 16) + (rgb._2 << 8) + rgb._3
+    }
+
+    val bufImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+    for (row <- (0 until height); col <- (0 until width)) bufImage.setRGB(col, row, p2Color(get(row, col)))
+
+    bufImage
+  }
+
+  def toDeepColorBufferedImage: BufferedImage = toDeepColorBufferedImage(min, max)
+
 }
 
 object DicomImage {
