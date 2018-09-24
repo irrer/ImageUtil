@@ -144,6 +144,8 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   /**
    * Given a list of pixel coordinates to correct, create a new <code>DicomImage</code> with
    * each of the listed pixel values replaced by the average of it's neighbors.
+   * 
+   * Note that the correction of a single 1190x1190 image takes about 2 seconds on a XEON 3.6GHz processor. 
    */
   def correctBadPixels(badPixelList: IndexedSeq[Point]): DicomImage = {
 
@@ -237,7 +239,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
         case 5 => (255, 0, 255)
         case _ => (255, 0, 255) // pixel outside range
       }
-      (rgb._1 << 16) + (rgb._2 << 8) + rgb._3
+      (rgb._1 << 8) + (rgb._2 << 16) + rgb._3
     }
 
     val bufImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
