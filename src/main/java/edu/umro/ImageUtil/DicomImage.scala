@@ -144,8 +144,8 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   /**
    * Given a list of pixel coordinates to correct, create a new <code>DicomImage</code> with
    * each of the listed pixel values replaced by the average of it's neighbors.
-   * 
-   * Note that the correction of a single 1190x1190 image takes about 2 seconds on a XEON 3.6GHz processor. 
+   *
+   * Note that the correction of a single 1190x1190 image takes about 2 seconds on a XEON 3.6GHz processor.
    */
   def correctBadPixels(badPixelList: IndexedSeq[Point]): DicomImage = {
 
@@ -212,7 +212,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
    */
   def toDeepColorBufferedImage(minimum: Float, maximum: Float): BufferedImage = {
 
-    val range = maximum - minimum
+    val range = (maximum - minimum).abs.toFloat
 
     /**
      * Given a pixel value, return an RGB color
@@ -220,12 +220,12 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     def p2Color(pixel: Float): Int = {
       val scaledPixel = {
         { (pixel - minimum) / range } match {
-          case p if (p < minimum) => minimum
-          case p if (p > maximum) => maximum
+          case p if (p < 0) => 0
+          case p if (p > 1) => 1
           case p => p
         }
-
       }
+
       val a = (1 - scaledPixel) / 0.2
       val X = Math.floor(a).toInt
       val Y = Math.floor(255 * (a - X)).toInt
@@ -243,7 +243,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     }
 
     val bufImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
-    for (row <- (0 until height); col <- (0 until width)) bufImage.setRGB(col, row, p2Color(get(row, col)))
+    for (row <- (0 until height); col <- (0 until width)) bufImage.setRGB(col, row, p2Color(get(col, row)))
 
     bufImage
   }
