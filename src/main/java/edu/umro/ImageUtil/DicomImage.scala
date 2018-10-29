@@ -96,7 +96,8 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     }
 
     val ratingList = { for (x <- (0 until width); y <- (0 until height)) yield { new DicomImage.PixelRating(ratePixel(x, y), new Point(x, y)) } }
-    ratingList.sortWith((a, b) => (a.rating > b.rating)).take(count)
+    val list = ratingList.sortWith((a, b) => (a.rating > b.rating)).take(count)
+    list
   }
 
   /**
@@ -210,9 +211,33 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   /**
    * Create a buffered image of this DICOM image using multiple colors to give a deeper color depth of 1276 than the standard 256.
    */
-  def toDeepColorBufferedImage(minimum: Float, maximum: Float): BufferedImage = {
+  def toDeepColorBufferedImage(minimumV: Float, maximumV: Float): BufferedImage = {
 
-    val range = (maximum - minimum).abs.toFloat
+    val minMax = {
+      if (true) {
+        (minimumV, maximumV)
+      } else {
+        //(maximum - minimum).abs.toFloat
+        //val bulk = (width * height * 0.99995).round.toInt
+        val bulk = (width * height * 0.99999).round.toInt
+        def trim(h: Seq[(Float, Int)]): (Float, Float) = {
+          println("    bottom: " + h.take(5) + "    top: " + h.takeRight(5)) // TODO rm
+          val total = h.map(vc => vc._2).reduce(_ + _)
+          0 match {
+            case _ if total <= bulk => (h.head._2, h.last._2)
+            case _ if h.head._2 < h.last._2 => trim(h.tail)
+            case _ => trim(h.dropRight(1))
+          }
+        }
+
+        val hist = histogram
+        println("Starting: bottom: " + hist.take(5) + "    top: " + hist.takeRight(5)) // TODO rm
+        trim(hist)
+      }
+    }
+
+    val range = (minMax._2 - minMax._1).abs
+    val minimum = Math.min(minMax._1, minMax._2)
 
     /**
      * Given a pixel value, return an RGB color
@@ -250,6 +275,15 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
   def toDeepColorBufferedImage: BufferedImage = toDeepColorBufferedImage(min, max)
 
+  /**
+   * Generate a count of each pixel value.
+   *
+   * @return List tuples [(pixel value, number of pixels with that value)] sorted by pixel value.
+   */
+  def histogram: Seq[(Float, Int)] = {
+    val list = pixelData.flatten.groupBy(identity).toList.map(g => (g._1, g._2.size)).sortWith((a, b) => a._1 < b._1)
+    list
+  }
 }
 
 object DicomImage {
