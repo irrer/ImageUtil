@@ -81,7 +81,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
    *  most pixels this is a list of the eight neighbors.
    */
   private val neighbors = {
-    val nextTo = Seq(-1, 0, 1)
+    val nextTo = Seq(-2, -1, 0, 1, 2)
     for (x <- nextTo; y <- nextTo; if (!((x == 0) && (y == 0)))) yield new Point(x, y)
   }
 
@@ -91,8 +91,11 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   private def findWorstPixelsQuickly(count: Int): IndexedSeq[DicomImage.PixelRating] = {
     def ratePixel(x: Int, y: Int): Float = {
       val v = get(x, y)
+      if (v > 60000)
+        println("Big: " + v)
       val valid = neighbors.map(xy => new Point(x + xy.x, y + xy.y)).filter(xy => validPoint(xy.x, xy.y))
-      valid.map(xy => Math.abs(get(xy.x, xy.y) - v)).sum / valid.size
+      val rating = valid.map(xy => Math.abs(get(xy.x, xy.y) - v)).sum / valid.size
+      rating
     }
 
     val ratingList = { for (x <- (0 until width); y <- (0 until height)) yield { new DicomImage.PixelRating(ratePixel(x, y), new Point(x, y)) } }
@@ -101,7 +104,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   }
 
   /**
-   * Find the worst pixels in terms of how severely they differ from their 8 neighbors.
+   * Find the worst pixels in terms of how severely they differ from their neighbors.
    */
   private def findWorstPixels(sampleSize: Int, maxBadPixels: Int, stdDevMultiple: Double): IndexedSeq[DicomImage.PixelRating] = {
     val worst = findWorstPixelsQuickly(sampleSize)
@@ -137,9 +140,153 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
    * of 1.0 would mark good pixels as bad.
    *
    */
-  def identifyBadPixels(sampleSize: Int, maxBadPixels: Int, stdDev: Double): IndexedSeq[DicomImage.PixelRating] = {
+  def identifyBadPixels1(sampleSize: Int, maxBadPixels: Int, stdDev: Double): IndexedSeq[DicomImage.PixelRating] = {
     val stdDevMultiple = stdDev + 1
     findWorstPixels(sampleSize, maxBadPixels, stdDevMultiple).filter(bad => isGenuinelyBadPixel(bad, stdDevMultiple))
+  }
+
+  private def ratePixelByStdDev(xc: Int, yc: Int): DicomImage.PixelRating = {
+
+    val radius = 2
+    val diam = (radius * 2) + 1
+
+    val maxX = width - diam
+    val x = {
+      val xx = xc - radius
+      if (xx < 0) 0
+      else if (xx > maxX) maxX
+      else xx
+    }
+
+    val maxY = height - diam
+    val y = {
+      val yy = yc - radius
+      if (yy < 0) 0
+      else if (yy > maxY) maxY
+      else yy
+    }
+
+    val pixels: IndexedSeq[Float] = {
+      try {
+        (y until (y + diam)).map(yy => pixelData(yy).drop(x).take(diam)).flatten
+      } catch {
+        case t: Throwable => {
+          println("out of bounds")
+          IndexedSeq[Float](1, 2, 3, 4, 5)
+        }
+      }
+    }
+
+    val pixOfIntrst = get(xc, yc)
+    val total = pixels.sum
+    val mean = total / pixels.size
+
+    def std(v: Float) = {
+      val vv = v - mean
+      vv * vv
+    }
+
+    val variance = pixels.map(std).sum / pixels.size
+
+    val deviation: Float =
+      if (variance == 0) {
+        0
+      } else {
+        val stdDev = Math.sqrt(variance)
+        val deviation = (pixOfIntrst - mean).abs / stdDev
+        if (deviation.toString.replaceAllLiterally("E-", "").toLowerCase.matches(".*[a-z].*"))
+          println("bad number")
+        if (deviation < 0)
+          println("hey <")
+        deviation.toFloat
+      }
+    new DicomImage.PixelRating(deviation, new Point(xc, yc))
+  }
+
+  private def getMostOfHistogram(size: Int, hist: Seq[DicomImage.HistPoint]): (Int, Int) = {
+
+    def remove(h: Seq[DicomImage.HistPoint], s: Int, lo: Int, hi: Int): (Seq[DicomImage.HistPoint], (Int, Int)) = {
+      val hc = h.head.count
+      val lc = h.last.count
+      if ((s <= size) || (hc > 2 && lc > 2)) (h, (lo, hi))
+      else {
+        if (hc < lc) {
+          remove(h.tail, s - hc, lo + 1, hi)
+        } else
+          remove(h.init, s - lc, lo, hi - 1)
+      }
+    }
+    val culled = remove(hist, width * height, 0, hist.size - 1)
+    culled._2
+  }
+
+  private def identifyOutlierPixels: DicomImage.BadPixelSet = {
+
+    if (true) {
+      val max10 = { for (y <- 0 until height; x <- 0 until width) yield { new DicomImage.PixelRating(get(x, y), new Point(x, y)) } }.sortWith((a, b) => a.rating < b.rating).takeRight(10)
+      println("max10:\n" + max10.mkString("\n    "))
+    }
+
+    val percentBulk = 1.0  // TODO make into configuration parameter
+    val percentBoundary = 10.0  // TODO make into configuration parameter
+    val hist = histogram
+    val mostRange = getMostOfHistogram(((1 - percentBulk / 100) * width * height).round.toInt, hist)
+
+    if (true) {
+      println("mostRange lo: " + hist(mostRange._1))
+      println("mostRange hi: " + hist(mostRange._2))
+    }
+
+    val allPixels = pixelData.flatten
+
+    def allPixelsOutsideRange(lo: Double, hi: Double): Seq[Point] = {
+      def outside(v: Float) = { (v > hi) || (v < lo) }
+      for (y <- 0 until height; x <- 0 until width; if outside(get(x, y))) yield { new Point(x, y) }
+    }
+
+    val maxAllowed = hist(mostRange._2).value * (1 + percentBoundary / 100.0)
+    val minAllowed = hist(mostRange._1).value * (1 - percentBoundary / 100.0)
+
+    val list = allPixelsOutsideRange(minAllowed, maxAllowed)
+
+    if (true) {
+      println("minAllowed: " + minAllowed)
+      println("maxAllowed: " + maxAllowed)
+      val outies = list.map(p => new DicomImage.PixelRating(get(p.x, p.y), p)).sortWith((a, b) => a.rating < b.rating)
+      println("outies:\n" + outies.mkString("\n    "))
+    }
+
+    new DicomImage.BadPixelSet(list.map(p => new DicomImage.PixelRating(10, p)), minAllowed.toFloat, maxAllowed.toFloat)
+  }
+
+  lazy val mean = pixelData.flatten.sum / (width * height) // TODO probably not needed
+
+  lazy val stdDev = { // TODO probably not needed
+    val avg = mean
+
+    def sd(v: Float) = {
+      val vv = v - avg
+      vv * vv
+    }
+    val variance = pixelData.flatten.map(v => sd(v)).sum / (width * height)
+    Math.sqrt(variance)
+  }
+
+  def identifyBadPixels(sampleSize: Int, maxBadPixels: Int, stdDev: Double): DicomImage.BadPixelSet = {
+    val start = System.currentTimeMillis
+    val all = for (x <- 0 until width; y <- 0 until height) yield { ratePixelByStdDev(x, y) }
+    val elapsed = System.currentTimeMillis - start
+    println("elapsed: " + elapsed)
+    val unique = all.map(pr => pr.rating).distinct
+    //println("unique: " + unique.mkString("\n    ", "\n    ", "\n    "))
+    println("unique.size: " + unique.size)
+    val allSorted = all.toList.sortWith((a, b) => a.rating < b.rating)
+    val worst = allSorted.takeRight(maxBadPixels).reverse.filter(pr => pr.rating > (stdDev + 1))
+
+    val outliers = identifyOutlierPixels
+    val distinctOutliers = outliers.list.filter(p => worst.find(b => b.point == p).isEmpty).map(p => new DicomImage.PixelRating(10, p))
+    val list = worst.toIndexedSeq ++ distinctOutliers
+    new DicomImage.BadPixelSet(list, outliers.minBound, outliers.maxBound)
   }
 
   /**
@@ -148,17 +295,26 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
    *
    * Note that the correction of a single 1190x1190 image takes about 2 seconds on a XEON 3.6GHz processor.
    */
-  def correctBadPixels(badPixelList: IndexedSeq[Point]): DicomImage = {
+  def correctBadPixels(badPixels: DicomImage.BadPixelSet): DicomImage = {
 
     case class CorrectedPixel(x: Int, y: Int) {
+      private val valueList = neighbors.map(n => new Point(n.x + x, n.y + y)).filter(n => validPoint(n.x, n.y)).map(p => get(p.x, p.y))
       val correctedValue: Float = {
-        val valueList = neighbors.map(n => new Point(n.x + x, n.y + y)).filter(n => validPoint(n.x, n.y)).map(p => get(p.x, p.y))
-        valueList.sum / valueList.size
+        val avg = valueList.sum / valueList.size
+        if (avg <= badPixels.minBound) badPixels.minBound
+        else if (avg >= badPixels.maxBound) badPixels.maxBound
+        else avg
+      }
+
+      if (true) { // TODO rm
+        println("CorrectedPixel  x: " + x + "   y: " + y + "     old value: " + get(x, y) + "     corrected value: " + correctedValue + "    neighVal: " + valueList.mkString("  ")) // TODO rm
       }
     }
 
+    Math.max(2.4, 3.4)
+
     val mutablePixelData = pixelData.map(row => row.toArray).toArray
-    val corrected = badPixelList.map(b => new CorrectedPixel(b.x, b.y))
+    val corrected = badPixels.list.map(b => new CorrectedPixel(b.x, b.y))
     corrected.map(cor => mutablePixelData(cor.y)(cor.x) = cor.correctedValue)
     new DicomImage(mutablePixelData.map(row => row.toIndexedSeq).toIndexedSeq)
   }
@@ -213,38 +369,14 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
    */
   def toDeepColorBufferedImage(minimumV: Float, maximumV: Float): BufferedImage = {
 
-    val minMax = {
-      if (true) {
-        (minimumV, maximumV)
-      } else {
-        //(maximum - minimum).abs.toFloat
-        //val bulk = (width * height * 0.99995).round.toInt
-        val bulk = (width * height * 0.99999).round.toInt
-        def trim(h: Seq[(Float, Int)]): (Float, Float) = {
-          println("    bottom: " + h.take(5) + "    top: " + h.takeRight(5)) // TODO rm
-          val total = h.map(vc => vc._2).reduce(_ + _)
-          0 match {
-            case _ if total <= bulk => (h.head._2, h.last._2)
-            case _ if h.head._2 < h.last._2 => trim(h.tail)
-            case _ => trim(h.dropRight(1))
-          }
-        }
-
-        val hist = histogram
-        println("Starting: bottom: " + hist.take(5) + "    top: " + hist.takeRight(5)) // TODO rm
-        trim(hist)
-      }
-    }
-
-    val range = (minMax._2 - minMax._1).abs
-    val minimum = Math.min(minMax._1, minMax._2)
+    val range = (maximumV - minimumV).abs
 
     /**
      * Given a pixel value, return an RGB color
      */
     def p2Color(pixel: Float): Int = {
       val scaledPixel = {
-        { (pixel - minimum) / range } match {
+        { (pixel - min) / range } match {
           case p if (p < 0) => 0
           case p if (p > 1) => 1
           case p => p
@@ -280,10 +412,20 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
    *
    * @return List tuples [(pixel value, number of pixels with that value)] sorted by pixel value.
    */
-  def histogram: Seq[(Float, Int)] = {
-    val list = pixelData.flatten.groupBy(identity).toList.map(g => (g._1, g._2.size)).sortWith((a, b) => a._1 < b._1)
+  def histogram: Seq[DicomImage.HistPoint] = {
+    val list = pixelData.flatten.groupBy(identity).toList.map(g => new DicomImage.HistPoint(g._1, g._2.size)).sortWith((a, b) => a.value < b.value)
     list
   }
+
+  def binnedHistogram(size: Int): Seq[DicomImage.HistPoint] = {
+    val incr = (max - min) / size
+    def vToBin(v: Float): Int = ((v - min) / incr).floor.toInt
+
+    def binToV(bs: (Int, Int)): DicomImage.HistPoint = new DicomImage.HistPoint(((bs._1 * incr) + min), bs._2)
+    val list = pixelData.flatten.groupBy(v => vToBin(v)).toList.map(g => (g._1, g._2.size)).sortWith((a, b) => a._1 < b._1).map(bs => binToV(bs))
+    list
+  }
+
 }
 
 object DicomImage {
@@ -291,6 +433,10 @@ object DicomImage {
   case class PixelRating(rating: Float, point: Point) extends Point(point.x, point.y) {
     override def toString = "rating: " + rating + " @ " + point.x + ", " + point.y
   }
+
+  case class HistPoint(value: Float, count: Int);
+
+  case class BadPixelSet(list: Seq[PixelRating], minBound: Float, maxBound: Float);
 
   def getPixelData(attributeList: AttributeList): IndexedSeq[IndexedSeq[Float]] = {
     val pixDat = attributeList.getPixelData.getShortValues
