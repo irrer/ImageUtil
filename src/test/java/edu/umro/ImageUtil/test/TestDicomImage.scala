@@ -10,6 +10,8 @@ import scala.Left
 import scala.Right
 import edu.umro.ImageUtil.DicomImage
 import edu.umro.ImageUtil.ImageUtil
+import java.awt.Rectangle
+
 //import scala.collection.JavaConverters._
 
 object TestDicomImage {
@@ -22,6 +24,33 @@ object TestDicomImage {
     al.read(new File(fileName))
 
     val dicomImage = new DicomImage(al)
+
+    if (true) {
+      val sub = dicomImage.getSubimage(new Rectangle(555, 0, 25, 20))
+
+      val maxBad = 40
+      val radius = 2
+      val diam = radius * 2 + 1
+      println("Using a radius of " + radius + "    diam: " + diam)
+
+      def printValues = {
+        def fmt(v: Float) = v.toInt.formatted("%4d")
+        println
+        print("       ")
+        for (x <- 0 until sub.width) { print(fmt(x) + "  ") }
+        println
+        for (y <- 0 until sub.height) {
+          print(fmt(y) + " : ")
+          println((0 until sub.width).map(x => fmt(sub.get(x, y))).mkString(" +"))
+        }
+        println
+      }
+      printValues
+
+      val badPix = sub.testFindWorstPixelsQuickly(maxBad, radius)
+      println("badPix:\n    " + badPix.mkString("\n    "))
+      System.exit(0)
+    }
 
     if (false) {
 
