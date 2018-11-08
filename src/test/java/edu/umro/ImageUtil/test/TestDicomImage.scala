@@ -49,7 +49,7 @@ object TestDicomImage {
 
       val badPix = sub.testFindWorstPixelsQuickly(maxBad, radius)
       println("badPix:\n    " + badPix.mkString("\n    "))
-      System.exit(0)
+      //System.exit(0)
     }
 
     if (false) {
@@ -81,10 +81,15 @@ object TestDicomImage {
     //    val maxBadPixels = 10
     //    val stdDevMultiple = 3.0
 
-    val badList = dicomImage.identifyBadPixels(-1, 10, 3.0)
-    val correctedDicomImage = dicomImage.correctBadPixels(badList)
+    val maxBadPixels = 100
+    val stdDev = 1.0
+    val radius = 5
 
-    println("Bad pixels size: " + badList.list.size + "\n" + badList.list.map(b => b.toString + "    value: " + dicomImage.get(b.point.getX.toInt, b.point.getY.toInt)).mkString("\n    ", "\n    ", "\n    "))
+    val badList = dicomImage.identifyBadPixels(maxBadPixels, stdDev, radius)
+    val correctedDicomImage = dicomImage.correctBadPixels(badList, radius)
+    println("correctedDicomImage   min: " + correctedDicomImage.min + "    max: " + correctedDicomImage.max)
+
+    println("Bad pixels size: " + badList.size + "\n" + badList.map(b => b.toString + "    value: " + dicomImage.get(b.point.getX.toInt, b.point.getY.toInt)).mkString("\n    ", "\n    ", "\n    "))
 
     val badPixelImage = dicomImage.toDeepColorBufferedImage
 
@@ -107,7 +112,7 @@ object TestDicomImage {
         }
       }
 
-      badList.list.map(w => makeBadPixelImage(w))
+      badList.map(w => makeBadPixelImage(w))
     }
 
     if (true) {
@@ -121,7 +126,7 @@ object TestDicomImage {
       val pngFile = new File(outDir, pngName)
 
       println("Writing file: " + pngFile.getAbsolutePath)
-      badList.list.map(w => ImageUtil.annotatePixel(badPixelImage, w.x, w.y, w.x + ", " + w.y, true))
+      badList.map(w => ImageUtil.annotatePixel(badPixelImage, w.x, w.y, w.x + ", " + w.y, true))
       pngFile.delete
       ImageIO.write(badPixelImage, "png", pngFile)
     }
@@ -130,11 +135,11 @@ object TestDicomImage {
       val pngName = "FcorrectedPixels.png"
       val pngFile = new File(outDir, pngName)
 
-      println("dicomImage min: " + dicomImage.min + "      dicomImage max: " + dicomImage.max + "      dicomImage mean: " + dicomImage.mean + "      dicomImage stdDev: " + dicomImage.stdDev)
-      val corrected = dicomImage.correctBadPixels(badList)
-      println("corrected  min: " + corrected.min + "      corrected  max: " + corrected.max + "      corrected  mean: " + corrected.mean + "      corrected  stdDev: " + corrected.stdDev)
+      println("dicomImage min: " + dicomImage.min + "      dicomImage max: " + dicomImage.max)
+      val corrected = dicomImage.correctBadPixels(badList, radius)
+      println("corrected  min: " + corrected.min + "      corrected  max: " + corrected.max)
       val correctedImage = corrected.toDeepColorBufferedImage
-      badList.list.map(w => ImageUtil.annotatePixel(correctedImage, w.x, w.y, w.x + ", " + w.y, true))
+      badList.map(w => ImageUtil.annotatePixel(correctedImage, w.x, w.y, w.x + ", " + w.y, true))
       pngFile.delete
       println("Writing file: " + pngFile.getAbsolutePath)
       ImageIO.write(correctedImage, "png", pngFile)

@@ -48,16 +48,16 @@ object PenumbraProfile {
       al.read(file)
       if (al.isImage) {
         val image = new DicomImage(al)
-        val badPixelList = image.identifyBadPixels(100, 20, 2.0)
-        println("File " + file + " Number of bad pixels: " + badPixelList.list.size)
-        badPixelList.list.map(bad => showBadPixel(bad, image))
+        val badPixelList = image.identifyBadPixels(100, 1.0, 5)
+        println("File " + file + " Number of bad pixels: " + badPixelList.size)
+        badPixelList.map(bad => showBadPixel(bad, image))
         val bufImage = if (true) {
-          val goodImage = image.correctBadPixels(badPixelList)
+          val goodImage = image.correctBadPixels(badPixelList, 5)
           goodImage.toBufferedImage(Color.green)
         } else {
           image.toBufferedImage(Color.green)
         }
-        badPixelList.list.map(w => ImageUtil.annotatePixel(bufImage, w.x, w.y, w.x + ", " + w.y, true))
+        badPixelList.map(w => ImageUtil.annotatePixel(bufImage, w.x, w.y, w.x + ", " + w.y, true))
         val imageFileName = file.getName.replaceAll(".dcm$", ".png").replaceAll(".DCM$", ".png")
         val imageFile = new File(file.getParentFile, imageFileName)
         imageFile.delete
