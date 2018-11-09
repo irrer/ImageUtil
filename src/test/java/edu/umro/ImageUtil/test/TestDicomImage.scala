@@ -11,6 +11,7 @@ import scala.Right
 import edu.umro.ImageUtil.DicomImage
 import edu.umro.ImageUtil.ImageUtil
 import java.awt.Rectangle
+import edu.umro.ScalaUtil.Trace
 
 //import scala.collection.JavaConverters._
 
@@ -24,12 +25,14 @@ object TestDicomImage {
     al.read(new File(fileName))
 
     val dicomImage = new DicomImage(al)
+    val radius = 8
+    val maxBadPixels = 100
+    val stdDev = 1.0
 
     if (true) {
       val sub = dicomImage.getSubimage(new Rectangle(555, 0, 25, 20))
 
-      val maxBad = 40
-      val radius = 2
+      val maxBad = 10
       val diam = radius * 2 + 1
       println("Using a radius of " + radius + "    diam: " + diam)
 
@@ -47,8 +50,11 @@ object TestDicomImage {
       }
       printValues
 
-      val badPix = sub.testFindWorstPixelsQuickly(maxBad, radius)
-      println("badPix:\n    " + badPix.mkString("\n    "))
+      val badPixQuickly = sub.testFindWorstPixelsQuickly(maxBad, radius)
+      println("badPixQuickly:\n    " + badPixQuickly.mkString("\n    "))
+
+      val badPix = sub.identifyBadPixels(maxBad, 1.0, radius)
+      println("badPix:\n" + badPix.mkString("\n    "))
       //System.exit(0)
     }
 
@@ -81,24 +87,27 @@ object TestDicomImage {
     //    val maxBadPixels = 10
     //    val stdDevMultiple = 3.0
 
-    val maxBadPixels = 100
-    val stdDev = 1.0
-    val radius = 5
-
+    Trace.trace;
     val badList = dicomImage.identifyBadPixels(maxBadPixels, stdDev, radius)
-    val correctedDicomImage = dicomImage.correctBadPixels(badList, radius)
-    println("correctedDicomImage   min: " + correctedDicomImage.min + "    max: " + correctedDicomImage.max)
+    Trace.trace;
+    val corrected = dicomImage.correctBadPixels(badList, radius)
+    Trace.trace;
+    println("old 746, 1: " + dicomImage.get(746, 1))
+    println("new 746, 1: " + corrected.get(746, 1))
+    println("dicomImage   min: " + dicomImage.min + "    max: " + dicomImage.max)
+    println("correctedDicomImage   min: " + corrected.min + "    max: " + corrected.max)
 
     println("Bad pixels size: " + badList.size + "\n" + badList.map(b => b.toString + "    value: " + dicomImage.get(b.point.getX.toInt, b.point.getY.toInt)).mkString("\n    ", "\n    ", "\n    "))
 
-    val badPixelImage = dicomImage.toDeepColorBufferedImage
+    Trace.trace;
+    val badPixelImage = dicomImage.toDeepColorBufferedImage(corrected.min, corrected.max)
+    Trace.trace;
 
     val outDir = new File("target\\images")
     outDir.mkdirs
     outDir.listFiles.map(f => f.delete)
 
     if (true) {
-      val radius = 3
       val hw = radius * 2 + 1
       def makeBadPixelImage(bad: DicomImage.PixelRating) = {
         try {
@@ -136,9 +145,10 @@ object TestDicomImage {
       val pngFile = new File(outDir, pngName)
 
       println("dicomImage min: " + dicomImage.min + "      dicomImage max: " + dicomImage.max)
-      val corrected = dicomImage.correctBadPixels(badList, radius)
       println("corrected  min: " + corrected.min + "      corrected  max: " + corrected.max)
+      Trace.trace;
       val correctedImage = corrected.toDeepColorBufferedImage
+      Trace.trace;
       badList.map(w => ImageUtil.annotatePixel(correctedImage, w.x, w.y, w.x + ", " + w.y, true))
       pngFile.delete
       println("Writing file: " + pngFile.getAbsolutePath)
