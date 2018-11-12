@@ -33,7 +33,7 @@ object PenumbraProfile {
   }
 
   private def showBadPixel(bad: DicomImage.PixelRating, image: DicomImage) = {
-    val sub = image.getSubimage(new Rectangle(bad.point.x - 2, bad.point.y - 2, 5, 5))
+    val sub = image.getSubimage(new Rectangle(bad.x - 2, bad.y - 2, 5, 5))
     println("        " + bad)
     for (y <- 0 until 5) {
       print("            ")
@@ -48,7 +48,7 @@ object PenumbraProfile {
       al.read(file)
       if (al.isImage) {
         val image = new DicomImage(al)
-        val badPixelList = image.identifyBadPixels(100, 1.0, 5)
+        val badPixelList = image.identifyBadPixels(100, 1.0, 10.0, 5, 10.0)
         println("File " + file + " Number of bad pixels: " + badPixelList.size)
         badPixelList.map(bad => showBadPixel(bad, image))
         val bufImage = if (true) {

@@ -26,6 +26,8 @@ object TestDicomImage {
 
     val dicomImage = new DicomImage(al)
     val radius = 8
+    val BadPixelMaximumPercentChange = 10.0
+    val BadPixelMinimumDeviation_CU = 10.0
     val maxBadPixels = 100
     val stdDev = 1.0
 
@@ -50,10 +52,10 @@ object TestDicomImage {
       }
       printValues
 
-      val badPixQuickly = sub.testFindWorstPixelsQuickly(maxBad, radius)
+      val badPixQuickly = sub.testFindWorstPixelsQuickly(maxBad, radius, BadPixelMinimumDeviation_CU)
       println("badPixQuickly:\n    " + badPixQuickly.mkString("\n    "))
 
-      val badPix = sub.identifyBadPixels(maxBad, 1.0, radius)
+      val badPix = sub.identifyBadPixels(maxBad, 1.0, BadPixelMaximumPercentChange, radius, BadPixelMinimumDeviation_CU)
       println("badPix:\n" + badPix.mkString("\n    "))
       //System.exit(0)
     }
@@ -88,24 +90,48 @@ object TestDicomImage {
     //    val stdDevMultiple = 3.0
 
     Trace.trace;
-    val badList = dicomImage.identifyBadPixels(maxBadPixels, stdDev, radius)
-    Trace.trace;
+    val beforeIdentify = System.currentTimeMillis
+    val badList = dicomImage.identifyBadPixels(maxBadPixels, stdDev, BadPixelMaximumPercentChange, radius, BadPixelMinimumDeviation_CU)
+    val afterIdentify = System.currentTimeMillis
+
+    Trace.trace("Time in ms to identify bad pixels: " + (afterIdentify - beforeIdentify));
+
+    val beforeCorrected = System.currentTimeMillis
     val corrected = dicomImage.correctBadPixels(badList, radius)
+    val afterCorrected = System.currentTimeMillis
+    Trace.trace("Time in ms to correct bad pixels: " + (afterCorrected - beforeCorrected));
+
     Trace.trace;
     println("old 746, 1: " + dicomImage.get(746, 1))
     println("new 746, 1: " + corrected.get(746, 1))
-    println("dicomImage   min: " + dicomImage.min + "    max: " + dicomImage.max)
-    println("correctedDicomImage   min: " + corrected.min + "    max: " + corrected.max)
+    println("dicomImage   min: " + dicomImage.minPixelValue + "    max: " + dicomImage.maxPixelValue)
+    println("correctedDicomImage   min: " + corrected.minPixelValue + "    max: " + corrected.maxPixelValue)
 
-    println("Bad pixels size: " + badList.size + "\n" + badList.map(b => b.toString + "    value: " + dicomImage.get(b.point.getX.toInt, b.point.getY.toInt)).mkString("\n    ", "\n    ", "\n    "))
+    println("Bad pixels size: " + badList.size + "\n" + badList.map(b => b.toString + "    value: " + dicomImage.get(b.x, b.y)).mkString("\n    ", "\n    ", "\n    "))
 
-    Trace.trace;
-    val badPixelImage = dicomImage.toDeepColorBufferedImage(corrected.min, corrected.max)
+    Trace.trace
+    if (true) {
+      val allPix = for (x <- 0 until corrected.width; y <- 0 until corrected.height) yield (DicomImage.PixelRating(corrected.get(x, y), x, y))
+      val bigPix = allPix.sortBy(_.rating).takeRight(20).reverse
+      println("bigPix:\n    " + bigPix.mkString("\n    bigPix "))
+    }
+
+    Trace.trace("corrected.minPixelValue: " + corrected.minPixelValue + "    corrected.maxPixelValue: " + corrected.maxPixelValue)
+    val badPixelImage = dicomImage.toDeepColorBufferedImage(corrected.minPixelValue, corrected.maxPixelValue)
     Trace.trace;
 
     val outDir = new File("target\\images")
     outDir.mkdirs
-    outDir.listFiles.map(f => f.delete)
+    def deleteOldFiles: Unit = {
+      val list = outDir.listFiles.filter(f => f.isFile)
+      Trace.trace("Number of old files to delete: " + list.size)
+      if (list.nonEmpty) {
+        list.map(f => f.delete)
+        Thread.sleep(1000)
+        deleteOldFiles
+      }
+    }
+    deleteOldFiles
 
     if (true) {
       val hw = radius * 2 + 1
@@ -144,8 +170,8 @@ object TestDicomImage {
       val pngName = "FcorrectedPixels.png"
       val pngFile = new File(outDir, pngName)
 
-      println("dicomImage min: " + dicomImage.min + "      dicomImage max: " + dicomImage.max)
-      println("corrected  min: " + corrected.min + "      corrected  max: " + corrected.max)
+      println("dicomImage min: " + dicomImage.minPixelValue + "      dicomImage max: " + dicomImage.maxPixelValue)
+      println("corrected  min: " + corrected.minPixelValue + "      corrected  max: " + corrected.maxPixelValue)
       Trace.trace;
       val correctedImage = corrected.toDeepColorBufferedImage
       Trace.trace;

@@ -77,7 +77,7 @@ object FindDeepColorList {
 
   private def alToCorrected(al: AttributeList): DicomImage = {
     val rawImage = new DicomImage(al)
-    val image = rawImage.correctBadPixels(rawImage.identifyBadPixels(400, 2.0, 5), 5)
+    val image = rawImage.correctBadPixels(rawImage.identifyBadPixels(400, 2.0, 10.0, 5, 10.0), 5)
     image
   }
 

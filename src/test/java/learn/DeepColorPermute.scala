@@ -65,8 +65,8 @@ object DeepColorPermute {
    */
   def toDeepColor(image: DicomImage, shift: Shifty): BufferedImage = {
 
-    val minimum = image.min
-    val maximum = image.max
+    val minimum = image.minPixelValue
+    val maximum = image.maxPixelValue
     val width = image.width
     val height = image.height
 
@@ -120,8 +120,8 @@ object DeepColorPermute {
 
   def toDeepColor2(image: DicomImage): BufferedImage = {
 
-    val minimum = image.min
-    val maximum = image.max
+    val minimum = image.minPixelValue
+    val maximum = image.maxPixelValue
     val width = image.width
     val height = image.height
 
@@ -144,7 +144,7 @@ object DeepColorPermute {
 
   private def alToCorrected(al: AttributeList): DicomImage = {
     val rawImage = new DicomImage(al)
-    val image = rawImage.correctBadPixels(rawImage.identifyBadPixels(400, 2.0, 5), 5)
+    val image = rawImage.correctBadPixels(rawImage.identifyBadPixels(400, 2.0, 10.0, 5, 10.0), 5)
     image
   }
 
