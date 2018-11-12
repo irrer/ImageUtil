@@ -6,7 +6,6 @@ import java.awt.image.BufferedImage
 import java.awt.Color
 import java.awt.Rectangle
 import java.awt.Point
-import edu.umro.ScalaUtil.Trace
 
 class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
@@ -85,24 +84,6 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     val nextTo = Seq(-2, -1, 0, 1, 2)
     for (x <- nextTo; y <- nextTo; if (!((x == 0) && (y == 0)))) yield new Point(x, y)
   }
-
-  /**
-   * Use a quick but coarse algorithm to scan the entire image and make a list of the worst pixels.
-   */
-  //  private def findWorstPixelsQuickly1(count: Int): IndexedSeq[DicomImage.PixelRating] = {
-  //    def ratePixel(x: Int, y: Int): Float = {
-  //      val v = get(x, y)
-  //      if (v > 60000)
-  //        println("Big: " + v)
-  //      val valid = neighbors.map(xy => new Point(x + xy.x, y + xy.y)).filter(xy => validPoint(xy.x, xy.y))
-  //      val rating = valid.map(xy => Math.abs(get(xy.x, xy.y) - v)).sum / valid.size
-  //      rating
-  //    }
-  //
-  //    val ratingList = { for (x <- (0 until width); y <- (0 until height)) yield { new DicomImage.PixelRating(ratePixel(x, y), new Point(x, y)) } }
-  //    val list = ratingList.sortWith(DicomImage.sortPixelRating _).take(count)
-  //    list
-  //  }
 
   /**
    * Use a quick but coarse algorithm to scan the entire image and make a list of the worst pixels.
@@ -227,25 +208,14 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       def stdOf(v: Float) = {
         val vm = v - mean
         val s = vm * vm
-        if (s.toString.toLowerCase.contains("n")) { // TODO rm
-          println("badness stdOf NaN or Infinity: v: " + v + "    mean: " + mean + "    s: " + s)
-        }
         s
-      }
-
-      if (goodList.size < 1) { // TODO rm
-        println("badness size 0")
       }
 
       val variance = goodList.map(v => stdOf(v)).sum / Math.max(goodList.size, 1)
       val stdDev = Math.sqrt(variance).toFloat
       val rating = ((pixelValue - mean) / stdDev).abs
 
-      val r = if (rating.toString.equals("NaN")) {
-        0.toFloat
-      } else rating
-      println("StdDev: " + rating) // TODO rm
-      new DicomImage.PixelRating(r, bp.x, bp.y)
+      new DicomImage.PixelRating(rating, bp.x, bp.y)
     }
 
     badList.map(bp => stdDev(bp, radius))
@@ -325,7 +295,6 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       val ys = startAt(bp.y, height)
       val goodList = for (x <- xs until (xs + diam); y <- ys until (ys + diam); if isGood(x, y)) yield get(x, y)
       val mean = goodList.sum / goodList.size
-      Trace.trace("xy: " + bp.x + ", " + bp.y + "    oldValue: " + get(bp.x, bp.y) + "    new value: " + mean)
       mutablePixelData(bp.y)(bp.x) = mean
     }
 
