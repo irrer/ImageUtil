@@ -15,7 +15,7 @@ import edu.umro.ScalaUtil.Trace
 
 //import scala.collection.JavaConverters._
 
-object TestDicomImage {
+object TestDicomImageFullImage {
 
   def main(args: Array[String]): Unit = {
 
@@ -25,69 +25,11 @@ object TestDicomImage {
     al.read(new File(fileName))
 
     val dicomImage = new DicomImage(al)
-    val radius = 8
+    val radius = 5
     val BadPixelMaximumPercentChange = 10.0
     val BadPixelMinimumDeviation_CU = 10.0
     val maxBadPixels = 100
     val stdDev = 1.0
-
-    if (true) {
-      val sub = dicomImage.getSubimage(new Rectangle(555, 0, 25, 20))
-
-      val maxBad = 10
-      val diam = radius * 2 + 1
-      println("Using a radius of " + radius + "    diam: " + diam)
-
-      def printValues = {
-        def fmt(v: Float) = v.toInt.formatted("%4d")
-        println
-        print("       ")
-        for (x <- 0 until sub.width) { print(fmt(x) + "  ") }
-        println
-        for (y <- 0 until sub.height) {
-          print(fmt(y) + " : ")
-          println((0 until sub.width).map(x => fmt(sub.get(x, y))).mkString(" +"))
-        }
-        println
-      }
-      printValues
-
-      val badPixQuickly = sub.testFindWorstPixelsQuickly(maxBad, radius, BadPixelMinimumDeviation_CU)
-      println("badPixQuickly:\n    " + badPixQuickly.mkString("\n    "))
-
-      val badPix = sub.identifyBadPixels(maxBad, 1.0, BadPixelMaximumPercentChange, radius, BadPixelMinimumDeviation_CU)
-      println("badPix:\n" + badPix.mkString("\n    "))
-      //System.exit(0)
-    }
-
-    if (false) {
-
-      val minExpected = IndexedSeq(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 20, 41, 56, 56, 65, 77, 89, 91, 95, 96, 99, 108,
-        119, 120, 126, 129, 131, 133, 143, 144, 147, 148, 152, 154, 155, 164, 164, 167)
-
-      val min = dicomImage.minPixelValues(minExpected.size).map(p => Math.round(p).toInt)
-      println("minPixelValues: " + dicomImage.minPixelValues(40).map(p => Math.round(p).toInt).mkString("  "))
-      println("minPixelValues test: " + (if (min == minExpected) "passed" else "failed"))
-
-      val maxExpected = IndexedSeq(35208, 35208, 35209, 35212, 35214, 35215, 35215, 35216, 35216, 35223, 35227, 35228, 35229, 35230,
-        35233, 35234, 35236, 35239, 35240, 35244, 35252, 35253, 35256, 35258, 35267, 35270, 35275, 35276, 35289, 35291,
-        35293, 35298, 35302, 35307, 35352, 35384, 35384, 35392, 35427, 35488)
-
-      val max = dicomImage.maxPixelValues(maxExpected.size).map(p => Math.round(p).toInt)
-      println("maxPixelValues: " + max.mkString("  "))
-      println("maxPixelValues test: " + (if (max == maxExpected) "passed" else "failed"))
-    }
-
-    if (false) {
-      val bufImage = dicomImage.toBufferedImage(Color.CYAN)
-      val pngName = "target\\original.png"
-      val pngFile = new File(pngName)
-      pngFile.delete
-      ImageIO.write(bufImage, "png", pngFile)
-    }
-
-    //    val maxBadPixels = 10
-    //    val stdDevMultiple = 3.0
 
     Trace.trace;
     val beforeIdentify = System.currentTimeMillis

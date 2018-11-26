@@ -125,8 +125,6 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       }
     }
 
-    val worstPixels = new WorstPixels
-
     def startAt(d: Int, limit: Int): Int = {
       if (d <= radius) 0
       else Math.min(d - radius, limit - diam)
@@ -142,7 +140,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
        * Get the next column by subtracting the first X value of each row and adding the next.
        */
       def next: Column = {
-        if (x >= (width - diam)) {
+        if (x >= (width - 1)) {
           this // going off the end
         } else {
           if (startAt(x, width) == startAt(x + 1, width)) {
@@ -181,17 +179,19 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       }
     }
 
+    val worstPixels = new WorstPixels
+
     def evalCol(col: Column): Unit = {
       val row = new Row(0, col)
 
       def evalRow(row: Row, y: Int): Row = {
         val rating = row.rate(get(col.x, y))
-        if (worstPixels.shouldPut(rating)) worstPixels.put(rating, col.x, y)
+        if (worstPixels.shouldPut(rating))
+          worstPixels.put(rating, col.x, y)
         row.next
       }
 
       (0 until height).foldLeft(row)((r, y) => evalRow(r, y))
-
     }
 
     (0 until width).foldLeft(new Column(0))((col, x) => {
@@ -288,13 +288,10 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       else
         big.drop(good.last + 1)
 
-    val j = abnormal.size // TODO rm
-    if (j > 1) // TODO rm
-      Trace.trace("j big: " + j) // TODO rm
     abnormal
   }
 
-  private def identifyLargeOutlierPixels(maxBadPixels: Int, BadPixelMaximumPercentChange: Double, badList: Seq[DicomImage.PixelRating]): Seq[DicomImage.PixelRating] = {
+  private def identifyLargeOutlierPixels(maxBadPixels: Int, BadPixelMaximumPercentChange: Double, sortedStdDeviationBadList: Seq[DicomImage.PixelRating]): Seq[DicomImage.PixelRating] = {
     val mult = 1 + (BadPixelMaximumPercentChange / 100)
     def isBad(i: Int) = {
       (histogram(i).count < 3) &&
@@ -309,24 +306,46 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       val badValue = histogram(badIndex).value
 
       val outlierList = { for (x <- 0 until width; y <- 0 until height; if get(x, y) >= badValue) yield (DicomImage.PixelRating(pixelData(y)(x), x, y)) }.sortBy(_.rating).takeRight(maxBadPixels * 2)
-      Trace.trace("outlierList.size: " + outlierList.size)
-      outlierList
+      val knownBadSet = sortedStdDeviationBadList.map(pr => (pr.x, pr.y)).toSet
+      def notKnown(pr: DicomImage.PixelRating) = !knownBadSet.contains((pr.x, pr.y))
+      outlierList.filter(o => notKnown(o))
+
     } else Seq[DicomImage.PixelRating]()
   }
 
   def identifyBadPixels(maxBadPixels: Int, stdDev: Double, BadPixelMaximumPercentChange: Double, radius: Int, BadPixelMinimumDeviation_CU: Double): Seq[DicomImage.PixelRating] = {
-    Trace.trace("Start of timing test") // TODO rm
-    val start = System.currentTimeMillis // TODO rm
-    val badList = findWorstPixelsQuickly(maxBadPixels * 2, radius, BadPixelMinimumDeviation_CU)
-    Trace.trace("End of timing test.  Elapsed ms: " + (System.currentTimeMillis - start) + "    Number of quickly found bad pixels: " + badList.size) // TODO rm
+
+    /**
+     * Show the pixels in the immediate area for debugging.
+     */
+    def pr2s(pr: DicomImage.PixelRating): Unit = {
+      println("\n---- " + pr.x + ", " + pr.y + "  rating: " + pr.rating + "  value: " + get(pr.x, pr.y))
+      val rad = 8
+      val diam = rad * 2 + 1
+      val area = getSubimage(new Rectangle(pr.x - rad, pr.y - rad, diam, diam))
+
+      for (x <- 0 until area.width) {
+        print("\n    ")
+        for (y <- 0 until area.height) {
+          print(area.get(x, y).round.toInt.formatted("%7d"))
+        }
+      }
+      println
+    }
+
+    val coarseBadList = findWorstPixelsQuickly(maxBadPixels * 4, radius, BadPixelMinimumDeviation_CU)
+
     val limit = stdDev + 1
-    val worst = scoreWithStandardDeviation(badList, radius).filter(bp => bp.rating >= limit)
-    val sorted = worst.sortBy(_.rating).takeRight(maxBadPixels).reverse
-//    val abnormal = identifyPixelsWithAbnormallyLargeValues(maxBadPixels, BadPixelMaximumPercentChange, sorted)
-//    (sorted ++ abnormal).sortBy(_.rating).reverse
-    val outlierList = identifyLargeOutlierPixels(maxBadPixels, BadPixelMaximumPercentChange, sorted)
-    (sorted ++ outlierList).sortBy(_.rating).reverse
-    //sorted // TODO is abnormal needed?
+    val stdDeviationBadListUnsorted = scoreWithStandardDeviation(coarseBadList, radius).filter(bp => bp.rating >= limit)
+    val sortedStdDeviationBadList = stdDeviationBadListUnsorted.sortBy(_.rating).takeRight(maxBadPixels).reverse
+
+    val outlierList = identifyLargeOutlierPixels(maxBadPixels, BadPixelMaximumPercentChange, sortedStdDeviationBadList)
+    Trace.trace("New outlierList size: " + outlierList.size) // TODO rm
+
+    // only add bad pixels that were not previously discovered
+    // val outlierNew = outlierList.filter(o => stdDeviationBadListUnsorted.find(w => ((w.x == o.x) && (w.y == o.y))).isEmpty)
+
+    (sortedStdDeviationBadList ++ outlierList).sortBy(_.rating).reverse
   }
 
   def correctBadPixels(badList: Seq[DicomImage.PixelRating], radius: Int): DicomImage = {
