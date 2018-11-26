@@ -18,18 +18,22 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   val width = Columns
   val height = Rows
 
-  /**
-   * Make a new <code>DicomImage</code> based on a sub-rectangle of this one.  If part of the
-   * specified rectangle is out of bounds a cropped version will be used.
-   */
-  def getSubimage(rectangle: Rectangle): DicomImage = {
+  def getSubArray(rectangle: Rectangle): IndexedSeq[IndexedSeq[Float]] = {
     val x = (if (rectangle.getX < 0) 0 else rectangle.getX).toInt
     val y = (if (rectangle.getY < 0) 0 else rectangle.getY).toInt
     val w = (if (rectangle.getX + rectangle.getWidth > width) width - rectangle.getX else rectangle.getWidth).toInt
     val h = (if (rectangle.getY + rectangle.getHeight > height) height - rectangle.getY else rectangle.getHeight).toInt
 
     val pixDat = (y until h + y).map(row => pixelData(row).drop(x).take(w))
-    new DicomImage(pixDat)
+    pixDat
+  }
+
+  /**
+   * Make a new <code>DicomImage</code> based on a sub-rectangle of this one.  If part of the
+   * specified rectangle is out of bounds a cropped version will be used.
+   */
+  def getSubimage(rectangle: Rectangle): DicomImage = {
+    new DicomImage(getSubArray(rectangle))
   }
 
   def get(x: Int, y: Int) = pixelData(y)(x)
