@@ -1,6 +1,5 @@
 package edu.umro.ImageUtil
 
-import java.security.InvalidParameterException
 import org.opensourcephysics.numerics.CubicSpline
 
 /**
