@@ -8,6 +8,8 @@ import java.awt.Point
 import java.awt.geom.Point2D
 import java.security.InvalidParameterException
 import java.awt.BasicStroke
+import java.io.File
+import javax.imageio.ImageIO
 
 object ImageUtil {
 
@@ -169,4 +171,10 @@ object ImageUtil {
     val gratList = for (g <- (begin - 2) to (end + 2); if ((g * increment) >= lo) && ((g * increment) <= hi)) yield (g * increment)
     if (min < max) gratList else gratList.reverse
   }
+
+  /**
+   * Write a buffered image as a PNG file.
+   */
+  def writePngFile(image: BufferedImage, file: File) = ImageIO.write(image, "png", file)
+
 }
