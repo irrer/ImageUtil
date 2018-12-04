@@ -57,6 +57,25 @@ object LocateRidge {
     center
   }
 
+  private def centerOfMassVert(col: Pix, rowList: Seq[Pix], height: Double, array: IndexedSeq[IndexedSeq[Float]]): Double = {
+    val totalMassSum = rowList.map(row => col.size * array(col.index)(row.index)).sum
+    val totalMassAvg = totalMassSum / height
+
+    // only consider values that are above the mean.  This filters out the background and diminishes the
+    // influence of the original bounding rectangle.
+    val relevantRowList = rowList.filter(row => array(col.index)(row.index) > totalMassAvg)
+
+    // sum of relevant pixels
+    val relevantMassSum = relevantRowList.map(row => col.size * array(col.index)(row.index)).sum
+
+    // position*mass sum of relevant pixels
+    val relevantCenterMassSum = relevantRowList.map(row => row.center * col.size * array(col.index)(row.index)).sum
+
+    // center of mass of the relevant pixels
+    val center = relevantCenterMassSum / relevantMassSum
+    center
+  }
+
   /**
    * Locate the vertical center of a ridge enclosed in the given rectangle.  The algorithm is for each row of
    * pixels, consider only pixels that are above average value for that row, and then find their center of mass,
@@ -71,7 +90,22 @@ object LocateRidge {
     val x = yList.sum / rectangle.height
     x
   }
-  
+
+  /**
+   * Locate the horizontal center of a ridge enclosed in the given rectangle.  The algorithm is for each row of
+   * pixels, consider only pixels that are above average value for that row, and then find their center of mass,
+   * which is considered to be the center of that row.  Finally, take the average of the centers of the rows and
+   * return that as the center of the ridge.
+   */
+  def locateHorizontal(array: IndexedSeq[IndexedSeq[Float]], rectangle: Rectangle2D.Double): Double = {
+    val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height)
+    val colList = pixelSizeList(rectangle.x, rectangle.x + rectangle.width)
+
+    val xList = colList.map(col => centerOfMassVert(col, rowList, rectangle.height, array) * col.size)
+    val y = xList.sum / rectangle.width
+    y
+  }
+
   // ----------------------------------------------------------------------------------------------------------------------------
 
   /**
