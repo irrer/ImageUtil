@@ -38,13 +38,16 @@ object LocateRidge {
     pixList
   }
 
-  private def centerOfMassHorz(row: Pix, colList: Seq[Pix], width: Double, array: IndexedSeq[IndexedSeq[Float]]): Double = {
-    val totalMassSum = colList.map(col => row.size * array(row.index)(col.index)).sum
+  /**
+   * precisely locate the center of mass for a vertical ridge by finding the center of mass for each row of pixels and then taking the mean.
+   */
+  private def centerOfMassVert(row: Pix, colList: Seq[Pix], width: Double, array: IndexedSeq[IndexedSeq[Float]]): Double = {
+    val totalMassSum = colList.map(col => col.size * array(row.index)(col.index)).sum
     val totalMassAvg = totalMassSum / width
 
     // only consider values that are above the mean.  This filters out the background and diminishes the
     // influence of the original bounding rectangle.
-    val relevantColList = colList.filter(col => array(row.index)(col.index) > totalMassAvg)
+    val relevantColList = colList.filter(col => array(col.index)(row.index) > totalMassAvg)
 
     // sum of relevant pixels
     val relevantMassSum = relevantColList.map(col => row.size * array(row.index)(col.index)).sum
@@ -57,27 +60,39 @@ object LocateRidge {
     center
   }
 
-  private def centerOfMassVert(col: Pix, rowList: Seq[Pix], height: Double, array: IndexedSeq[IndexedSeq[Float]]): Double = {
-    val totalMassSum = rowList.map(row => col.size * array(col.index)(row.index)).sum
-    val totalMassAvg = totalMassSum / height
+  /**
+   * precisely locate the center of mass for a horizontal ridge by finding the center of mass for each column of pixels and then taking the mean.
+   */
+  private def centerOfMassHorz(col: Pix, rowList: Seq[Pix], height: Double, array: IndexedSeq[IndexedSeq[Float]]): Double = {
+    //Trace.trace("col: " + col.index.formatted("%5d") + " : " + rowList.map(row => array(row.index)(col.index).toInt.formatted("%5d")).mkString)
 
-    // only consider values that are above the mean.  This filters out the background and diminishes the
-    // influence of the original bounding rectangle.
-    val relevantRowList = rowList.filter(row => array(col.index)(row.index) > totalMassAvg)
+    val center =
+      if (false) {
+        val totalMassSum = rowList.map(row => row.size * array(col.index)(row.index)).sum
+        val totalMassAvg = totalMassSum / height
+        // only consider values that are above the mean.  This filters out the background and diminishes the
+        // influence of the original bounding rectangle.
+        val relevantRowList = rowList.filter(row => array(col.index)(row.index) > totalMassAvg)
 
-    // sum of relevant pixels
-    val relevantMassSum = relevantRowList.map(row => col.size * array(col.index)(row.index)).sum
+        // sum of relevant pixels
+        val relevantMassSum = relevantRowList.map(row => row.size * array(col.index)(row.index)).sum
 
-    // position*mass sum of relevant pixels
-    val relevantCenterMassSum = relevantRowList.map(row => row.center * col.size * array(col.index)(row.index)).sum
+        //Trace.trace("rowList.size: " + rowList.size + "    relevantRowList.size: " + relevantRowList.size)
+        // position*mass sum of relevant pixels
+        val relevantCenterMassSum = relevantRowList.map(row => row.center * row.size * array(col.index)(row.index)).sum
 
-    // center of mass of the relevant pixels
-    val center = relevantCenterMassSum / relevantMassSum
+        // center of mass of the relevant pixels
+        relevantCenterMassSum / relevantMassSum
+      } else {
+        val totalMassSum = rowList.map(row => row.size * array(col.index)(row.index)).sum
+        val relevantCenterMassSum = rowList.map(row => row.center * row.size * array(col.index)(row.index)).sum
+        relevantCenterMassSum / totalMassSum
+      }
     center
   }
 
   /**
-   * Locate the vertical center of a ridge enclosed in the given rectangle.  The algorithm is for each row of
+   * Locate the center of a vertical ridge enclosed in the given rectangle.  The algorithm is for each row of
    * pixels, consider only pixels that are above average value for that row, and then find their center of mass,
    * which is considered to be the center of that row.  Finally, take the average of the centers of the rows and
    * return that as the center of the ridge.
@@ -86,13 +101,13 @@ object LocateRidge {
     val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height)
     val colList = pixelSizeList(rectangle.x, rectangle.x + rectangle.width)
 
-    val yList = rowList.map(row => centerOfMassHorz(row, colList, rectangle.width, array) * row.size)
-    val x = yList.sum / rectangle.height
+    val xList = rowList.map(row => centerOfMassVert(row, colList, rectangle.width, array) * row.size)
+    val x = xList.sum / rectangle.height
     x
   }
 
   /**
-   * Locate the horizontal center of a ridge enclosed in the given rectangle.  The algorithm is for each row of
+   * Locate the center of a horizontal ridge enclosed in the given rectangle.  The algorithm is for each row of
    * pixels, consider only pixels that are above average value for that row, and then find their center of mass,
    * which is considered to be the center of that row.  Finally, take the average of the centers of the rows and
    * return that as the center of the ridge.
@@ -101,8 +116,14 @@ object LocateRidge {
     val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height)
     val colList = pixelSizeList(rectangle.x, rectangle.x + rectangle.width)
 
-    val xList = colList.map(col => centerOfMassVert(col, rowList, rectangle.height, array) * col.size)
-    val y = xList.sum / rectangle.width
+    val yList = colList.map(col => centerOfMassHorz(col, rowList, rectangle.height, array) * col.size)
+    if (false) { // TODO rm
+      print("jjjjj: ")
+      colList.zip(yList).map(cy => print(" (" + cy._1.index + "," + cy._2.round + "),"))
+      println
+      // Trace.trace("rect center: " + rectangle.x  + yList)
+    }
+    val y = yList.sum / rectangle.width
     y
   }
 
