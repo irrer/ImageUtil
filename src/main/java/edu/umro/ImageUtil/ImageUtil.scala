@@ -10,6 +10,7 @@ import java.security.InvalidParameterException
 import java.awt.BasicStroke
 import java.io.File
 import javax.imageio.ImageIO
+import org.opensourcephysics.numerics.CubicSpline
 
 object ImageUtil {
 
@@ -177,4 +178,40 @@ object ImageUtil {
    */
   def writePngFile(image: BufferedImage, file: File) = ImageIO.write(image, "png", file)
 
+  /**
+   * Find the maximum point in a profile by fitting a cubic spline over it and then searching.  It is
+   * assumed that the profile has exactly one local maximum.  (ie: one hump, not multiple).
+   *
+   * @param x: List of X positions of data.  Each value must be unique.
+   *
+   * @param y: List of Y values corresponding to X values.  The profile of these values is examined.
+   */
+  def profileMaxCubic(xList: Array[Double], yList: Array[Double]): Double = {
+    val cubic = new CubicSpline(xList, yList)
+    val maxIteration = 20
+    val divs = 5
+    case class Pt(x: Double) {
+      lazy val y = cubic.evaluate(x)
+    }
+
+    def search(iter: Int, a: Pt, b: Pt): Double = {
+      if (iter < 1) Seq(a, b).sortBy(_.y).last.x
+      else {
+        val incr = (a.x - b.x).abs / divs
+        val minX = Math.min(a.x, b.x)
+        val between = (1 until divs).map(i => new Pt(minX + (i * incr)))
+        val all = (Seq(a, b) ++ between).sortBy(_.x)
+        val best = all.maxBy(pt => pt.y)
+        search(iter - 1, new Pt(best.x - incr), new Pt(best.x + incr))
+      }
+    }
+
+    val minX = xList.min
+    val maxX = xList.max
+    val ext = (maxX - minX) / xList.size
+
+    val loX = minX - ext
+    val hiX = maxX + ext
+    search(maxIteration, new Pt(loX), new Pt(hiX))
+  }
 }
