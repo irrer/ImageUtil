@@ -47,13 +47,13 @@ object LocateRidge {
 
     // only consider values that are above the mean.  This filters out the background and diminishes the
     // influence of the original bounding rectangle.
-    val relevantColList = colList.filter(col => array(col.index)(row.index) > totalMassAvg)
+    val relevantColList = colList.filter(col => array(row.index)(col.index) > totalMassAvg)
 
     // sum of relevant pixels
-    val relevantMassSum = relevantColList.map(col => row.size * array(row.index)(col.index)).sum
+    val relevantMassSum = relevantColList.map(col => col.size * array(row.index)(col.index)).sum
 
     // position*mass sum of relevant pixels
-    val relevantCenterMassSum = relevantColList.map(col => col.center * row.size * array(row.index)(col.index)).sum
+    val relevantCenterMassSum = relevantColList.map(col => col.center * col.size * array(row.index)(col.index)).sum
 
     // center of mass of the relevant pixels
     val center = relevantCenterMassSum / relevantMassSum
@@ -68,18 +68,18 @@ object LocateRidge {
 
     val center =
       if (false) {
-        val totalMassSum = rowList.map(row => row.size * array(col.index)(row.index)).sum
+        val totalMassSum = rowList.map(row => row.size * array(row.index)(col.index)).sum
         val totalMassAvg = totalMassSum / height
         // only consider values that are above the mean.  This filters out the background and diminishes the
         // influence of the original bounding rectangle.
-        val relevantRowList = rowList.filter(row => array(col.index)(row.index) > totalMassAvg)
+        val relevantRowList = rowList.filter(row => array(row.index)(col.index) > totalMassAvg)
 
         // sum of relevant pixels
-        val relevantMassSum = relevantRowList.map(row => row.size * array(col.index)(row.index)).sum
+        val relevantMassSum = relevantRowList.map(row => row.size * array(row.index)(col.index)).sum
 
         //Trace.trace("rowList.size: " + rowList.size + "    relevantRowList.size: " + relevantRowList.size)
         // position*mass sum of relevant pixels
-        val relevantCenterMassSum = relevantRowList.map(row => row.center * row.size * array(col.index)(row.index)).sum
+        val relevantCenterMassSum = relevantRowList.map(row => row.center * row.size * array(row.index)(col.index)).sum
 
         // center of mass of the relevant pixels
         relevantCenterMassSum / relevantMassSum
@@ -96,6 +96,10 @@ object LocateRidge {
    * pixels, consider only pixels that are above average value for that row, and then find their center of mass,
    * which is considered to be the center of that row.  Finally, take the average of the centers of the rows and
    * return that as the center of the ridge.
+   *
+   * @param array: pixels of image
+   *
+   * @param rectangle: Bounding area of interest.
    */
   def locateVertical(array: IndexedSeq[IndexedSeq[Float]], rectangle: Rectangle2D.Double): Double = {
     val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height)
@@ -111,6 +115,10 @@ object LocateRidge {
    * pixels, consider only pixels that are above average value for that row, and then find their center of mass,
    * which is considered to be the center of that row.  Finally, take the average of the centers of the rows and
    * return that as the center of the ridge.
+   *
+   * @param array: pixels of image
+   *
+   * @param rectangle: Bounding area of interest.
    */
   def locateHorizontal(array: IndexedSeq[IndexedSeq[Float]], rectangle: Rectangle2D.Double): Double = {
     val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height)
