@@ -113,19 +113,13 @@ class Watermark(watermarkImage: BufferedImage, top: Boolean, left: Boolean, perc
       val multiplier = if (avg < ((256 / 2) * 3)) 1.1 else 0.9
 
       def changePix(p: Pix) = {
-        if ((p.y < image.getHeight) && (p.x < image.getWidth)) {
-          val v = image.getRGB(p.x, p.y)
-          val r = (((v >> 16) & 0xff) * multiplier).round.toInt & 0xff
-          val g = (((v >> 8) & 0xff) * multiplier).round.toInt & 0xff
-          val b = ((v & 0xff) * multiplier).round.toInt & 0xff
+        val v = image.getRGB(p.x, p.y)
+        val r = (((v >> 16) & 0xff) * multiplier).round.toInt & 0xff
+        val g = (((v >> 8) & 0xff) * multiplier).round.toInt & 0xff
+        val b = ((v & 0xff) * multiplier).round.toInt & 0xff
 
-          val v2 = (r << 16) + (g << 8) + b
-          image.setRGB(p.x, p.y, v2)
-        } else {
-          val ih = image.getHeight
-          val iw = image.getWidth
-          println("badddddd  " + p)
-        }
+        val v2 = (r << 16) + (g << 8) + b
+        image.setRGB(p.x, p.y, v2)
       }
       pixList.map(p => changePix(p))
 
