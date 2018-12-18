@@ -12,10 +12,15 @@ import scala.collection.mutable.ArrayBuffer
 
 /**
  * Construct a watermark that can mark other images.  If the part of the original image to be watermarked is dark, then the watermark will
- * be lighter, otherwise darker.
+ * be lighter, otherwise darker.  Watermarking uses antialiasing, which uses the brightness (red+green+blue) of pixels to determine their
+ * effect on the target image.
  *
  * It is assumed that the watermark is provided as dark symbols (letters, numbers) on a light background.  The
  * background in general does not effect the original image.
+ *
+ * The area of the image to be watermarked is checked for smoothness/noise.  If there is a lot of variation in
+ * the original pixel values, then the contrast is increased by as much as 2 (maxContrastIncreaseFactor) to make
+ * the watermark more visible.
  *
  * @param image: Image used as the watermark.
  *
@@ -25,8 +30,10 @@ import scala.collection.mutable.ArrayBuffer
  *
  * @param percentWidth: Watermark should occupy this percent of the final image's width.
  *
+ * @param percentChange: Pixels should be changed by this amount.  A larger value (like 40) would produce more contrast.
+ *
  */
-class Watermark(watermarkImage: BufferedImage, top: Boolean, left: Boolean, percentWidth: Double) {
+class Watermark(watermarkImage: BufferedImage, top: Boolean, left: Boolean, percentWidth: Double, percentChange: Double) {
 
   private def brightnessOfWatermark(x: Int, y: Int) = {
     val rgb = watermarkImage.getRGB(x, y)
@@ -37,6 +44,9 @@ class Watermark(watermarkImage: BufferedImage, top: Boolean, left: Boolean, perc
 
   /** x and y are coordinates, brightness ranges from 0 to 1. */
   private case class Pix(x: Int, y: Int, brightness: Double);
+
+  /** For noisy images, the contrast is multiplied by as much as this factor to make the watermark visible. */
+  private val maxContrastIncreaseFactor = 2
 
   private val levelList = { for (x <- 0 until watermarkImage.getWidth; y <- 0 until watermarkImage.getHeight) yield (brightnessOfWatermark(x, y)) } sorted
 
@@ -51,8 +61,9 @@ class Watermark(watermarkImage: BufferedImage, top: Boolean, left: Boolean, perc
 
     def this(image: BufferedImage) = this(image.getWidth, image.getHeight)
 
-    val width_pix = ((width * percentWidth) / 100).floor
-    val height_pix = ((height * percentWidth) / 100).floor
+    val ratio = (width * percentWidth) / 100
+    val width_pix = ratio.floor
+    val height_pix = ((ratio * watermarkImage.getHeight) / watermarkImage.getWidth).floor
 
     val xMin = if (left) 0 else (width - width_pix).floor.toInt
     val yMin = if (top) 0 else (height - height_pix).floor.toInt
@@ -94,7 +105,6 @@ class Watermark(watermarkImage: BufferedImage, top: Boolean, left: Boolean, perc
           (scaledBuf(y)(x) > 0.01)
       }
       val pixList = for (y <- 0 until scaledBuf.size; x <- 0 until scaledBuf.head.size; if relevent(x, y)) yield { new Pix(x + xMin, y + yMin, scaledBuf(y)(x)) }
-
       pixList
     }
 
@@ -107,16 +117,28 @@ class Watermark(watermarkImage: BufferedImage, top: Boolean, left: Boolean, perc
           (rgb & 0xff))
       }
 
-      val avg = { for (x <- xMin to xMax; y <- yMin to yMax) yield (brightnessOfImage(x, y)) }.sum / numPixels
+      val brightnessList = for (x <- xMin to xMax; y <- yMin to yMax) yield (brightnessOfImage(x, y))
+      val avg = brightnessList.sum / brightnessList.size
+      val isDark = avg < ((256 / 2) * 3)
+      val pctChange: Double = {
+        val stdDev = Math.sqrt(brightnessList.map(b => (b - avg) * (b - avg)).sum / brightnessList.size)
+        Trace.trace("stdDev: " + stdDev) // TODO rm
+        stdDev match {
+          case _ if (stdDev < 1) => percentChange
+          case _ if (stdDev > maxContrastIncreaseFactor) => percentChange * maxContrastIncreaseFactor
+          case _ => percentChange * stdDev
+        }
+      }
 
       // if the area to be watermarked is dark then make watermark brighter, or vice versa
-      val multiplier = if (avg < ((256 / 2) * 3)) 1.1 else 0.9
 
       def changePix(p: Pix) = {
+        val change = pctChange * p.brightness / 100
+        val mult = (if (isDark) (1 + change) else (1 - change))
         val v = image.getRGB(p.x, p.y)
-        val r = (((v >> 16) & 0xff) * multiplier).round.toInt & 0xff
-        val g = (((v >> 8) & 0xff) * multiplier).round.toInt & 0xff
-        val b = ((v & 0xff) * multiplier).round.toInt & 0xff
+        val r = (((v >> 16) & 0xff) * mult).round.toInt & 0xff
+        val g = (((v >> 8) & 0xff) * mult).round.toInt & 0xff
+        val b = ((v & 0xff) * mult).round.toInt & 0xff
 
         val v2 = (r << 16) + (g << 8) + b
         image.setRGB(p.x, p.y, v2)
@@ -134,7 +156,7 @@ class Watermark(watermarkImage: BufferedImage, top: Boolean, left: Boolean, perc
    *
    * Caching really helps performance because incoming images usually are of a small number of sizes.
    */
-  private def getMask(width: Int, height: Int): Mask = {
+  private def getMask(width: Int, height: Int): Mask = cache.synchronized {
     cache.find(m => (m.width == width) && (m.height == height)) match {
       case Some(mask) => mask
       case _ => {

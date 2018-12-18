@@ -24,7 +24,7 @@ class TestWatermark extends FlatSpec with Matchers {
     val inFile = new File("""D:\pf\eclipse\workspaceOxygen\ImageUtil\src\test\resources\watermark.png""")
     val image = ImageIO.read(inFile)
 
-    val watermark = new Watermark(image, true, false, 10)
+    val watermark = new Watermark(image, false, false, 10, 4)
 
     watermark.mark(image)
 
