@@ -13,7 +13,10 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
 
   val Rows = pixelData.size
-  val Columns = pixelData.head.size
+  val Columns = {
+    if (pixelData.size == 0) 0
+    else pixelData.head.size
+  }
 
   val width = Columns
   val height = Rows
@@ -344,7 +347,6 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     val sortedStdDeviationBadList = stdDeviationBadListUnsorted.sortBy(_.rating).takeRight(maxBadPixels).reverse
 
     val outlierList = identifyLargeOutlierPixels(maxBadPixels, BadPixelMaximumPercentChange, sortedStdDeviationBadList)
-    Trace.trace("New outlierList size: " + outlierList.size) // TODO rm
 
     // only add bad pixels that were not previously discovered
     // val outlierNew = outlierList.filter(o => stdDeviationBadListUnsorted.find(w => ((w.x == o.x) && (w.y == o.y))).isEmpty)

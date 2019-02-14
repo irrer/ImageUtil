@@ -122,7 +122,6 @@ class Watermark(watermarkImage: BufferedImage, top: Boolean, left: Boolean, perc
       val isDark = avg < ((256 / 2) * 3)
       val pctChange: Double = {
         val stdDev = Math.sqrt(brightnessList.map(b => (b - avg) * (b - avg)).sum / brightnessList.size)
-        Trace.trace("stdDev: " + stdDev) // TODO rm
         stdDev match {
           case _ if (stdDev < 1) => percentChange
           case _ if (stdDev > maxContrastIncreaseFactor) => percentChange * maxContrastIncreaseFactor
