@@ -177,7 +177,7 @@ object DeepColorPermute {
   private def timeDeepColorRendering(list: Seq[DicomImage]) = {
     for (i <- (0 to 5)) {
       val st = System.currentTimeMillis
-      list.map(di => di.toDeepColorBufferedImage)
+      list.map(di => di.toDeepColorBufferedImage(0.2))
       val el = System.currentTimeMillis - st
       println("timeDeepColorRendering corrected elapsed time in ms: " + el + "    per image: " + (el.toDouble / list.size))
     }

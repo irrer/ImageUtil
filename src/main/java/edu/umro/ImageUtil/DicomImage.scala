@@ -298,27 +298,27 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     abnormal
   }
 
-  private def identifyLargeOutlierPixels(maxBadPixels: Int, BadPixelMaximumPercentChange: Double, sortedStdDeviationBadList: Seq[DicomImage.PixelRating]): Seq[DicomImage.PixelRating] = {
-    val mult = 1 + (BadPixelMaximumPercentChange / 100)
-    def isBad(i: Int) = {
-      (histogram(i).count < 3) &&
-        (histogram(i + 1).count < 3) &&
-        (histogram(i).value * mult) < histogram(i + 1).value
-    }
-
-    val cutoffIndex = histogram.tail.indices.find(i => isBad(i))
-
-    if (cutoffIndex.isDefined) {
-      val badIndex = cutoffIndex.get + 1
-      val badValue = histogram(badIndex).value
-
-      val outlierList = { for (x <- 0 until width; y <- 0 until height; if get(x, y) >= badValue) yield (DicomImage.PixelRating(pixelData(y)(x), x, y)) }.sortBy(_.rating).takeRight(maxBadPixels * 2)
-      val knownBadSet = sortedStdDeviationBadList.map(pr => (pr.x, pr.y)).toSet
-      def notKnown(pr: DicomImage.PixelRating) = !knownBadSet.contains((pr.x, pr.y))
-      outlierList.filter(o => notKnown(o))
-
-    } else Seq[DicomImage.PixelRating]()
-  }
+  //  private def identifyLargeOutlierPixels(maxBadPixels: Int, BadPixelMaximumPercentChange: Double, sortedStdDeviationBadList: Seq[DicomImage.PixelRating]): Seq[DicomImage.PixelRating] = {
+  //    val mult = 1 + (BadPixelMaximumPercentChange / 100)
+  //    def isBad(i: Int) = {
+  //      (histogram(i).count < 3) &&
+  //        (histogram(i + 1).count < 3) &&
+  //        (histogram(i).value * mult) < histogram(i + 1).value
+  //    }
+  //
+  //    val cutoffIndex = histogram.tail.indices.find(i => isBad(i))
+  //
+  //    if (cutoffIndex.isDefined) {
+  //      val badIndex = cutoffIndex.get + 1
+  //      val badValue = histogram(badIndex).value
+  //
+  //      val outlierList = { for (x <- 0 until width; y <- 0 until height; if get(x, y) >= badValue) yield (DicomImage.PixelRating(pixelData(y)(x), x, y)) }.sortBy(_.rating).takeRight(maxBadPixels * 2)
+  //      val knownBadSet = sortedStdDeviationBadList.map(pr => (pr.x, pr.y)).toSet
+  //      def notKnown(pr: DicomImage.PixelRating) = !knownBadSet.contains((pr.x, pr.y))
+  //      outlierList.filter(o => notKnown(o))
+  //
+  //    } else Seq[DicomImage.PixelRating]()
+  //  }
 
   def identifyBadPixels(maxBadPixels: Int, stdDev: Double, BadPixelMaximumPercentChange: Double, radius: Int, BadPixelMinimumDeviation_CU: Double): Seq[DicomImage.PixelRating] = {
 
@@ -346,12 +346,13 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     val stdDeviationBadListUnsorted = scoreWithStandardDeviation(coarseBadList, radius).filter(bp => bp.rating >= limit)
     val sortedStdDeviationBadList = stdDeviationBadListUnsorted.sortBy(_.rating).takeRight(maxBadPixels).reverse
 
-    val outlierList = identifyLargeOutlierPixels(maxBadPixels, BadPixelMaximumPercentChange, sortedStdDeviationBadList)
+    //val outlierList = identifyLargeOutlierPixels(maxBadPixels, BadPixelMaximumPercentChange, sortedStdDeviationBadList)
 
     // only add bad pixels that were not previously discovered
     // val outlierNew = outlierList.filter(o => stdDeviationBadListUnsorted.find(w => ((w.x == o.x) && (w.y == o.y))).isEmpty)
 
-    (sortedStdDeviationBadList ++ outlierList).sortBy(_.rating).reverse
+    //(sortedStdDeviationBadList ++ outlierList).sortBy(_.rating).reverse
+    sortedStdDeviationBadList
   }
 
   def correctBadPixels(badList: Seq[DicomImage.PixelRating], radius: Int): DicomImage = {
@@ -466,7 +467,32 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     bufImage
   }
 
-  def toDeepColorBufferedImage: BufferedImage = toDeepColorBufferedImage(minPixelValue, maxPixelValue)
+  /**
+   * Make a deep-color buffered image of the image.
+   *
+   * @param percentToDrop: The percent of pixels that will be dropped from the high and low end of the
+   * range of values to avoid letting a few bad pixels with extremely high or low values to expand the
+   * pixel range that most of the image contrast is lost.  To ignore this effect and use the full pixel
+   * range, use a value of 0.
+   *
+   * If a value of 0.5 is given, then 0.25 percent of the lowest valued pixels and 0.25 percent of the
+   * highest valued pixels will be dropped, and instead of being given their true color will be given the
+   * color for the lowest or highest value respectively.
+   */
+  def toDeepColorBufferedImage(percentToDrop: Double): BufferedImage = {
+    val numDrop = ((Rows * Columns) * ((percentToDrop / 2) / 100.0)).round.toInt
+    def trim(total: Int, hist: Seq[DicomImage.HistPoint]): Seq[DicomImage.HistPoint] = {
+      if (total < numDrop)
+        trim(total + hist.head.count, hist.tail)
+      else hist
+    }
+    val dropLo = trim(0, histogram)
+    val minPix = dropLo.head.value
+    val dropHi = trim(0, dropLo.reverse)
+    val maxPix = dropHi.head.value
+
+    toDeepColorBufferedImage(minPix, maxPix)
+  }
 
   /**
    * Generate a count of each pixel value.
