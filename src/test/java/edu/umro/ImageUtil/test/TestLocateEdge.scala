@@ -26,27 +26,44 @@ class TestLocateEdge extends FlatSpec with Matchers {
 
   "measured edge" should "be close calculated edge" in {
 
-    val expectedAnswer = 15.0
+    val data = {
+      val count = 10
+      val range = (0 until count)
 
-    val count = 10
-    val range = (0 until count)
+      val lo = 10.0.toFloat
+      val hi = 110.0.toFloat
 
-    val lo = 1.0.toFloat
-    val hi = 9.0.toFloat
+      def ramp(x: Int) = (((((hi - lo)) / count) * x) + lo).toFloat // linearly map index to value
+      val d = range.map(i => lo) ++ range.map(i => ramp(i)) ++ range.map(i => hi)
+      d
+    }
 
-    def ramp(x: Int) = (((((hi - lo)) / count) * x) + lo).toFloat // linearly map index to value
-    val data = range.map(i => lo) ++ range.map(i => ramp(i)) ++ range.map(i => hi)
+    def measure(data: IndexedSeq[Float]) = {
+      println("----------------------------------------------")
+      println("data values:\n    " + data.indices.map(i => i.formatted("%4d : ") + data(i).formatted("%5.1f")).mkString("\n    "))
 
-    val midVal = LocateEdge.locateEdge(data, count / 4)
+      val lo = data.min
+      val hi = data.max
 
-    println("data.size: " + data.size)
-    println("midVal: " + midVal)
+      val halfway = ((hi + lo) / 2)
 
-    val success = (Math.abs(expectedAnswer - midVal) / expectedAnswer) < 1.0e-8
+      println("data values:\n    " + data.indices.map(i => i.formatted("%4d : ") + data(i).formatted("%5.1f")).mkString("\n    "))
+      val measured = LocateEdge.locateEdge(data, halfway)
+      val expectedAnswer = data.indexOf(halfway).toDouble
 
-    println("success: " + success)
+      println("data.size: " + data.size)
+      println("expectedAnswer: " + expectedAnswer)
+      println("measured edge: " + measured)
 
-    success should be(true)
+      val success = (Math.abs(expectedAnswer - measured) / expectedAnswer) < 1.0e-8
+
+      println("success: " + success)
+      success should be(true)
+    }
+
+    measure(data)
+    measure(data.reverse)
+
   }
 
   //}
