@@ -11,7 +11,7 @@ object LocateMax {
   /**
    * Convert a list to a cubic spline
    */
-  private def toCubicSpline(data: IndexedSeq[Float]): CubicSpline = new CubicSpline(data.indices.toArray.map(s => s.toDouble), data.toArray.map(f => f.toDouble))
+  private def toCubicSpline(data: Seq[Float]): CubicSpline = new CubicSpline(data.indices.toArray.map(s => s.toDouble), data.toArray.map(f => f.toDouble))
 
   /** Perform the binary search up to this many times to be accurate to approximately this many bits of precision. */
   private val maxSearchIteration = 128
@@ -44,7 +44,7 @@ object LocateMax {
    * highest.  The algorithm might fail if given a profile with a series of peaks that are similar in height.
    *
    */
-  def locateMax(profile: IndexedSeq[Float]): Double = {
+  def locateMax(profile: Seq[Float]): Double = {
 
     val max = profile.max
     val initial = profile.indexOf(max)
