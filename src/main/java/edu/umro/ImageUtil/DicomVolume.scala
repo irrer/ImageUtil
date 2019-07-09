@@ -17,8 +17,14 @@ case class DicomVolume(volume: Seq[DicomImage]) {
   val ySize = volume.head.height
   val zSize = volume.size
 
+  val volSize = Seq(xSize, ySize, zSize)
+
   /**
    * Get a sub-volume of the given volume given the min and max XYZ coordinates.
+   *
+   * @param start The corner of the 3D rectangle closest to the origin.
+   *
+   * @param size The XYZ dimensions of the 3D rectangle.
    */
   def getSubVolume(start: Point3i, size: Point3i): DicomVolume = {
 
@@ -31,11 +37,15 @@ case class DicomVolume(volume: Seq[DicomImage]) {
   /**
    * Get the point of the volume that is the highest pixel intensity.  Result is in units of voxels.
    */
-  def getMaxPoint(volOfInt: DicomVolume): Point3d = {
+  def getMaxPoint: Point3d = {
 
-    val xPlaneProfile = volOfInt.volume.map(img => img.rowSums).map(voxel => voxel.sum)
-    val yPlaneProfile = volOfInt.volume.map(img => img.columnSums).map(voxel => voxel.sum)
-    val zPlaneProfile = volOfInt.volume.map(img => img.rowSums.sum)
+    val xPlaneProfile = volume.map(img => img.rowSums).map(voxel => voxel.sum)
+    val yPlaneProfile = volume.map(img => img.columnSums).map(voxel => voxel.sum)
+    val zPlaneProfile = volume.map(img => img.rowSums.sum)
+
+    Trace.trace(xPlaneProfile)
+    Trace.trace(yPlaneProfile)
+    Trace.trace(zPlaneProfile)
 
     val xMax = xPlaneProfile.indexOf(xPlaneProfile.max)
     val yMax = yPlaneProfile.indexOf(yPlaneProfile.max)
@@ -61,5 +71,13 @@ object DicomVolume {
     alList.sortBy(al => slicePosition(al))
   }
 
+  /**
+   * construct a volume from a list of attribute lists.
+   */
   def constructDicomVolume(alList: Seq[AttributeList]) = new DicomVolume(DicomVolume.sortDicomListByZ(alList.toSeq).map(al => new DicomImage(al)))
+
+  /**
+   * Convert a Point3i to Point3d
+   */
+  def pi2pd(pi: Point3i) = new Point3d(pi.getX, pi.getY, pi.getZ)
 }
