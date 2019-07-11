@@ -38,10 +38,10 @@ object LocateMax {
 
     val divisions = 10
 
-    def approximate(xyList: IndexedSeq[XY], iteration: Int, prevBestX: Double): Double = {
+    def approximate(xyList: IndexedSeq[XY], iteration: Int): Double = {
       val best = xyList.maxBy(_.y)
-      Trace.trace("iteration: " + iteration.formatted("%3d") + "    best: " + best.x + "  " + best.y)
-      if ((iteration >= maxIteration) || (best.x == prevBestX)) best.x
+      //Trace.trace("iteration: " + iteration.formatted("%3d") + "    best: " + best.x + "  " + best.y)
+      if (iteration >= maxIteration) best.x
       else {
         val prevIncr = xyList(1).x - xyList.head.x
         val lo = Math.max(best.x - prevIncr, 0.0)
@@ -50,13 +50,13 @@ object LocateMax {
 
         val newList = (0 to divisions).map(i => new XY(((i * incr) + lo), spline.evaluate((i * incr) + lo)))
         //Trace.trace("\n    " + newList.mkString("\n    "))
-        approximate(newList, iteration + 1, best.x)
+        approximate(newList, iteration + 1)
       }
     }
 
     val incr = 1.0 / divisions
     val list = (0 to ((profile.size - 1) * divisions)).map(i => new XY(i * incr, spline.evaluate(i * incr)))
-    val result = approximate(list, 0, -1)
+    val result = approximate(list, 0)
 
     result
   }
