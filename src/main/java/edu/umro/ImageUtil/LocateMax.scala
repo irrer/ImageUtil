@@ -14,64 +14,49 @@ object LocateMax {
    */
   private def toCubicSpline(data: Seq[Float]): CubicSpline = new CubicSpline(data.indices.toArray.map(s => s.toDouble), data.toArray.map(f => f.toDouble))
 
-  //  /** Perform the binary search up to this many times to be accurate to approximately this many bits of precision. */
-  //  private val maxSearchIteration = 128
-  //
-  //  private def binarySearch(lo: Double, hi: Double, prevLo: Double, prevHi: Double, iteration: Int, spline: CubicSpline): Double = {
-  //
-  //    // If iterating too long or there is no change, then use the result we have.
-  //    if ((iteration >= maxSearchIteration) || ((lo == prevLo) && (hi == prevHi))) {
-  //      (hi + lo) / 2
-  //    } else {
-  //
-  //      val count = 9 // evenly divide into this many intervals in the region of interest
-  //      val interval = (hi - lo) / count
-  //      val xList = (0 to count).map(i => lo + (i * interval))
-  //      val yList = xList.map(x => spline.evaluate(x))
-  //
-  //      // Contains peak if point on either side is lower.
-  //      def containsPeak(i: Int) = {
-  //        (yList(i - 1) <= yList(i)) && (yList(i) >= (yList(i + 1)))
-  //      }
-  //
-  //      val mid = {
-  //        val peak = (1 until count).filter(i => containsPeak(i)).headOption
-  //        if (peak.isEmpty)
-  //          throw new InvalidParameterException("Given range does not contain a peak value.  iteration: " + iteration + "    Evaluated: " + yList.mkString("  "))
-  //        peak.get
-  //      }
-  //
-  //      binarySearch(xList(mid - 1), xList(mid + 1), lo, hi, iteration + 1, spline)
-  //    }
-  //  }
+  /** Maximum number of iterations to approximate answer. */
+  private val maxIteration = 16
 
   /**
    * Locate the maximum value to a precise degree.  The assumption made is that there is one point that is the
    * highest.  The algorithm might fail if given a profile with a series of peaks that are similar in height.
    *
+   *  @param profile List of values describing profile that contains a maximum.
    */
   def locateMax(profile: Seq[Float]): Double = {
 
-    Trace.trace(profile.mkString("  "))
-    val max = profile.max
-    Trace.trace
-    val initial = profile.indexOf(max)
-    Trace.trace
+    case class XY(x: Double, y: Double) {
+      override def toString: String = {
+        x.formatted("%20.14f") + ", " + y.formatted("%20.14f")
+      }
+    }
 
-    val lo = Math.max(0, initial - 2)
-    val hi = Math.min(profile.size - 1, initial + 2)
-    Trace.trace
+    // Largest possible answer (end of array).  Never return a value larger than this.  The lower limit is always 0.
+    val upperLimit = profile.size - 1.0
 
     val spline = toCubicSpline(profile)
-    Trace.trace
 
-    val res = 50000
-    val incD = 1 / res.toDouble
-    val bestI = (0 to res).toSeq.maxBy(i => spline.evaluate(lo + (i * incD)))
+    val divisions = 10
 
-    val result = lo + (bestI * incD)
-    //val result = binarySearch(lo, hi, lo - 1, hi + 1, 0, spline)
-    Trace.trace(result)
+    def approximate(xyList: IndexedSeq[XY], iteration: Int, prevBestX: Double): Double = {
+      val best = xyList.maxBy(_.y)
+      Trace.trace("iteration: " + iteration.formatted("%3d") + "    best: " + best.x + "  " + best.y)
+      if ((iteration >= maxIteration) || (best.x == prevBestX)) best.x
+      else {
+        val prevIncr = xyList(1).x - xyList.head.x
+        val lo = Math.max(best.x - prevIncr, 0.0)
+        val hi = Math.min(best.x + prevIncr, upperLimit)
+        val incr = (hi - lo) / divisions
+
+        val newList = (0 to divisions).map(i => new XY(((i * incr) + lo), spline.evaluate((i * incr) + lo)))
+        //Trace.trace("\n    " + newList.mkString("\n    "))
+        approximate(newList, iteration + 1, best.x)
+      }
+    }
+
+    val incr = 1.0 / divisions
+    val list = (0 to ((profile.size - 1) * divisions)).map(i => new XY(i * incr, spline.evaluate(i * incr)))
+    val result = approximate(list, 0, -1)
 
     result
   }
