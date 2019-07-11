@@ -15,7 +15,10 @@ object LocateMax {
   private def toCubicSpline(data: Seq[Float]): CubicSpline = new CubicSpline(data.indices.toArray.map(s => s.toDouble), data.toArray.map(f => f.toDouble))
 
   /** Maximum number of iterations to approximate answer. */
-  private val maxIteration = 16
+  private val minIteration = 10
+
+  /** Maximum number of iterations to approximate answer. */
+  private val maxIteration = 20
 
   /**
    * Locate the maximum value to a precise degree.  The assumption made is that there is one point that is the
@@ -38,10 +41,12 @@ object LocateMax {
 
     val divisions = 10
 
-    def approximate(xyList: IndexedSeq[XY], iteration: Int): Double = {
+    def approximate(xyList: IndexedSeq[XY], iteration: Int, prevX: Double): Double = {
       val best = xyList.maxBy(_.y)
       //Trace.trace("iteration: " + iteration.formatted("%3d") + "    best: " + best.x + "  " + best.y)
-      if (iteration >= maxIteration) best.x
+      if ((iteration >= maxIteration) ||
+        ((best.x == prevX) && (iteration > minIteration)))
+        best.x
       else {
         val prevIncr = xyList(1).x - xyList.head.x
         val lo = Math.max(best.x - prevIncr, 0.0)
@@ -50,13 +55,13 @@ object LocateMax {
 
         val newList = (0 to divisions).map(i => new XY(((i * incr) + lo), spline.evaluate((i * incr) + lo)))
         //Trace.trace("\n    " + newList.mkString("\n    "))
-        approximate(newList, iteration + 1)
+        approximate(newList, iteration + 1, best.x)
       }
     }
 
     val incr = 1.0 / divisions
     val list = (0 to ((profile.size - 1) * divisions)).map(i => new XY(i * incr, spline.evaluate(i * incr)))
-    val result = approximate(list, 0)
+    val result = approximate(list, 0, -1)
 
     result
   }
