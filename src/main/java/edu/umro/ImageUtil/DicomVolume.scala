@@ -56,7 +56,8 @@ case class DicomVolume(volume: Seq[DicomImage]) {
   }
 
   /**
-   * Find the sub-volume of the given size that has the highest sum of voxel values.
+   * Find the sub-volume of the given size that has the highest sum of voxel values.  In
+   * other words, look for bright blobs of a given size.
    *
    * @param size Size of sub-volume
    *
