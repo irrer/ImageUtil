@@ -8,6 +8,7 @@ import java.awt.Color
 import java.awt.Rectangle
 import java.awt.Point
 import edu.umro.ScalaUtil.Trace
+import java.security.InvalidParameterException
 
 class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
@@ -511,6 +512,63 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     def binToV(bs: (Int, Int)): DicomImage.HistPoint = new DicomImage.HistPoint(((bs._1 * incr) + minPixelValue), bs._2)
     val list = pixelData.flatten.groupBy(v => vToBin(v)).toList.map(g => (g._1, g._2.size)).sortWith((a, b) => a._1 < b._1).map(bs => binToV(bs))
     list
+  }
+
+  /**
+   * Convert this image to an image that can be drawn as square pixels.  The resulting square pixels will
+   * be of the size of the smaller dimension.  For example, if the pixels were 0.2 by 0.5, then the
+   * resulting pixels would be 0.2 by 0.2 .
+   *
+   * If there is an extra fractional column (at the bottom) or row (at the right) then it will be removed.
+   *
+   * @param aspectRatio Width of pixel divided by height, or in other words x/y.  For example. if
+   * a pixel's width is 0.5 mm and height is 0.8, then the aspect ratio would be 0.625.
+   */
+  def renderPixelsToSquare(aspectRatio: Double): DicomImage = {
+
+    def horizontal: DicomImage = {
+      def makeRow(y: Int) = {
+        val topSourcePix = (aspectRatio * y).floor.toInt
+        val bottomSourcePix = (aspectRatio * (y + 1)).floor.toInt
+
+        // top and bottom of pixel
+        val top = y * aspectRatio
+        val bottom = top + aspectRatio
+
+        val t = aspectRatio * y
+        val b = aspectRatio * (y + 1)
+
+        val separator = topSourcePix / aspectRatio
+
+        val tPortion = (topSourcePix / aspectRatio) - y
+
+        def pixVal(x: Int): Float = {
+          if (topSourcePix == bottomSourcePix) get(x, topSourcePix)
+          else {
+            val composite = ((separator - top) * get(x, topSourcePix)) + ((bottom - separator) * get(x, bottomSourcePix))
+            composite.toFloat
+          }
+        }
+
+        (0 until width).map(x => pixVal(x))
+      }
+
+      val numRows = (height / aspectRatio).floor.toInt
+      val pixArray = (0 until numRows).map(y => makeRow(y))
+      val di = new DicomImage(pixArray)
+      di
+    }
+
+    def vertical: DicomImage = {
+      ???
+    }
+
+    aspectRatio match {
+      case 1.0 => new DicomImage(pixelData) // essentially a no-op.
+      case _ if aspectRatio <= 0 => throw new InvalidParameterException("Aspect ratio must be greater than zero.  Ratio given: " + aspectRatio)
+      case _ if (aspectRatio < 1) => horizontal
+      case _ => vertical
+    }
   }
 
 }
