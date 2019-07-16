@@ -524,9 +524,12 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
    * @param aspectRatio Width of pixel divided by height, or in other words x/y.  For example. if
    * a pixel's width is 0.5 mm and height is 0.8, then the aspect ratio would be 0.625.
    */
-  def renderPixelsToSquare(aspectRatio: Double): DicomImage = {
+  def renderPixelsToSquare(pixelWidth: Double, pixelHeight: Double): DicomImage = {
+
+    val aspectRatio = pixelWidth / pixelHeight
 
     def horizontal: DicomImage = {
+      Trace.trace
       def makeRow(y: Int) = {
         val topSourcePix = (aspectRatio * y).floor.toInt
         val bottomSourcePix = (aspectRatio * (y + 1)).floor.toInt
@@ -556,6 +559,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       val numRows = (height / aspectRatio).floor.toInt
       val pixArray = (0 until numRows).map(y => makeRow(y))
       val di = new DicomImage(pixArray)
+      Trace.trace
       di
     }
 
@@ -566,8 +570,9 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     aspectRatio match {
       case 1.0 => new DicomImage(pixelData) // essentially a no-op.
       case _ if aspectRatio <= 0 => throw new InvalidParameterException("Aspect ratio must be greater than zero.  Ratio given: " + aspectRatio)
-      case _ if (aspectRatio < 1) => horizontal
-      case _ => vertical
+      case _ if (aspectRatio > 1) => horizontal
+      case _ => horizontal // TODO
+      //case _ => vertical  // TODO
     }
   }
 
