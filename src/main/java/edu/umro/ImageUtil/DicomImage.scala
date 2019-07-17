@@ -40,7 +40,15 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     new DicomImage(getSubArray(rectangle))
   }
 
-  def get(x: Int, y: Int) = pixelData(y)(x)
+  def get(x: Int, y: Int) = {
+    try pixelData(y)(x)
+    catch {
+      case _ => {
+        println("x: " + x + "    y: " + y)
+        0.toFloat
+      }
+    }
+  }
 
   /** minimum pixel value. */
   lazy val minPixelValue = pixelData.map(row => row.min).min
@@ -528,7 +536,10 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
     val aspectRatio = pixelWidth / pixelHeight
 
-    def horizontal: DicomImage = {
+    /**
+     * Make the image taller to accurately reflect the true height of the pixels.
+     */
+    def makeTaller: DicomImage = {
       Trace.trace
       def makeRow(y: Int) = {
         val topSourcePix = (aspectRatio * y).floor.toInt
@@ -541,14 +552,17 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
         val t = aspectRatio * y
         val b = aspectRatio * (y + 1)
 
-        val separator = topSourcePix / aspectRatio
+        val separator = bottomSourcePix / aspectRatio
 
-        val tPortion = (topSourcePix / aspectRatio) - y
+        val j = 55555 // TODO rm
 
         def pixVal(x: Int): Float = {
-          if (topSourcePix == bottomSourcePix) get(x, topSourcePix)
+          if ((topSourcePix == bottomSourcePix) || (separator == separator.floor))
+            get(x, topSourcePix)
           else {
-            val composite = ((separator - top) * get(x, topSourcePix)) + ((bottom - separator) * get(x, bottomSourcePix))
+            val jt = get(x, topSourcePix) // TODO rm
+            val jb = get(x, bottomSourcePix) // TODO rm
+            val composite = ((separator - separator.floor) * get(x, topSourcePix)) + ((separator.ceil - separator) * get(x, bottomSourcePix))
             composite.toFloat
           }
         }
@@ -563,15 +577,18 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       di
     }
 
-    def vertical: DicomImage = {
+    /**
+     * Make the image wider to accurately reflect the true width of the pixels.
+     */
+    def makeWider: DicomImage = {
       ???
     }
 
     aspectRatio match {
-      case 1.0 => new DicomImage(pixelData) // essentially a no-op.
-      case _ if aspectRatio <= 0 => throw new InvalidParameterException("Aspect ratio must be greater than zero.  Ratio given: " + aspectRatio)
-      case _ if (aspectRatio > 1) => horizontal
-      case _ => horizontal // TODO
+      case 1.0 => this // essentially a no-op.
+      case _ if (aspectRatio <= 0) => throw new InvalidParameterException("Aspect ratio must be greater than zero.  Ratio given: " + aspectRatio)
+      case _ if (aspectRatio < 1) => makeTaller
+      case _ => makeWider // TODO
       //case _ => vertical  // TODO
     }
   }
