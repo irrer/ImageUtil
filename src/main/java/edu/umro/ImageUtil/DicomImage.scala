@@ -523,6 +523,13 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   }
 
   /**
+   * Create a copy rotated 90 degrees counterclockwise.  This is done in a loss-less way.
+   */
+  def rotate90: DicomImage = {
+    new DicomImage(((width - 1) to 0 by -1).map(y => (0 until height).map(x => get(y, x))))
+  }
+
+  /**
    * Convert this image to an image that can be drawn as square pixels.  The resulting square pixels will
    * be of the size of the smaller dimension.  For example, if the pixels were 0.2 by 0.5, then the
    * resulting pixels would be 0.2 by 0.2 .
@@ -540,7 +547,6 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
      * Make the image taller to accurately reflect the true height of the pixels.
      */
     def makeTaller: DicomImage = {
-      Trace.trace
       def makeRow(y: Int) = {
         val topSourcePix = (aspectRatio * y).floor.toInt
         val bottomSourcePix = (aspectRatio * (y + 1)).floor.toInt
@@ -554,14 +560,10 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
         val separator = bottomSourcePix / aspectRatio
 
-        val j = 55555 // TODO rm
-
         def pixVal(x: Int): Float = {
           if ((topSourcePix == bottomSourcePix) || (separator == separator.floor))
             get(x, topSourcePix)
           else {
-            val jt = get(x, topSourcePix) // TODO rm
-            val jb = get(x, bottomSourcePix) // TODO rm
             val composite = ((separator - separator.floor) * get(x, topSourcePix)) + ((separator.ceil - separator) * get(x, bottomSourcePix))
             composite.toFloat
           }
@@ -573,7 +575,6 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       val numRows = (height / aspectRatio).floor.toInt
       val pixArray = (0 until numRows).map(y => makeRow(y))
       val di = new DicomImage(pixArray)
-      Trace.trace
       di
     }
 
@@ -581,15 +582,14 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
      * Make the image wider to accurately reflect the true width of the pixels.
      */
     def makeWider: DicomImage = {
-      ???
+      rotate90.renderPixelsToSquare(pixelHeight, pixelWidth).rotate90.rotate90.rotate90
     }
 
     aspectRatio match {
       case 1.0 => this // essentially a no-op.
       case _ if (aspectRatio <= 0) => throw new InvalidParameterException("Aspect ratio must be greater than zero.  Ratio given: " + aspectRatio)
       case _ if (aspectRatio < 1) => makeTaller
-      case _ => makeWider // TODO
-      //case _ => vertical  // TODO
+      case _ => makeWider
     }
   }
 
