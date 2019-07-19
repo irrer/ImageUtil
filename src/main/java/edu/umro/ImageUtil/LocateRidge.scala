@@ -125,12 +125,6 @@ object LocateRidge {
     val colList = pixelSizeList(rectangle.x, rectangle.x + rectangle.width)
 
     val yList = colList.map(col => centerOfMassHorz(col, rowList, rectangle.height, array) * col.size)
-    if (false) { // TODO rm
-      print("jjjjj: ")
-      colList.zip(yList).map(cy => print(" (" + cy._1.index + "," + cy._2.round + "),"))
-      println
-      // Trace.trace("rect center: " + rectangle.x  + yList)
-    }
     val y = yList.sum / rectangle.width
     y
   }

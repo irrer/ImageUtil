@@ -49,7 +49,7 @@ object ImageText {
     val xPos = (x - rect.getWidth / 2).toFloat // adjust horizontal
     val yPos = (y + (rect.getHeight - graphics.getFontMetrics.getAscent + graphics.getFontMetrics.getDescent) / 2).toFloat
 
-    graphics.drawString(text, xPos, yPos) // TODO fix to xPos, yPos
+    graphics.drawString(text, xPos, yPos)
   }
 
   /**
