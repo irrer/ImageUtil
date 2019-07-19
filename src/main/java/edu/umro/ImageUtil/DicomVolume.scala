@@ -78,61 +78,69 @@ case class DicomVolume(volume: Seq[DicomImage]) {
 
   /**
    * Get the point of the volume that is the highest pixel intensity.  Result is in units of voxels.
+   *
+   * If the standard deviation in any of the 3 dimensions is below the given minimum standard deviation, then
+   * return None, indicating that the maximum point found was not sufficiently distinguishable from
+   * noise to qualify as an object.
    */
-  def getMaxPoint: Point3d = {
-    Trace.trace
+  def getMaxPoint(minStdDev: Double): Option[Point3d] = {
+
+    // the sum of all planes perpendicular to the X axis
     val xPlaneProfile = (0 until xSize).map(x => {
-      val k = for (y <- 0 until ySize; z <- 0 until zSize) yield (getXYZ(x, y, z))
-      k.sum
+      val xView = for (y <- 0 until ySize; z <- 0 until zSize) yield (getXYZ(x, y, z))
+      xView.sum
     })
 
-    Trace.trace
-    val rowSums = volume.map(img => img.rowSums)
-    Trace.trace
-
-    //    val xPlaneProfile = {
-    //      def allXinY(y: Int) = {
-    //        (0 until zSize).map(z => rowSums(z)(y)).sum
-    //      }
-    //      val j = (0 until ySize).map(y => allXinY(y))
-    //      j
-    //    }
-
+    // the sum of all planes perpendicular to the Y axis
     val yPlaneProfile = {
       (0 until ySize).map(y => {
-        val k = for (x <- 0 until xSize; z <- 0 until zSize) yield (getXYZ(x, y, z))
-        k.sum
+        val yView = for (x <- 0 until xSize; z <- 0 until zSize) yield (getXYZ(x, y, z))
+        yView.sum
       })
     }
-    Trace.trace
 
-    //    val yPlaneProfile = {
-    //      val colSums = volume.map(img => img.columnSums)
-    //      def allYinX(x: Int) = {
-    //        (0 until zSize).map(z => rowSums(z)(x)).sum
-    //      }
-    //      val j = (0 until xSize).map(x => allYinX(x))
-    //      j
-    //    }
-
+    // the sum of all planes perpendicular to the Z axis
     val zPlaneProfile = volume.map(img => img.rowSums.sum)
-    Trace.trace
 
-    Trace.trace("\n  " + xPlaneProfile.map(f => f.toInt).mkString(" "))
-    Trace.trace("\n  " + yPlaneProfile.map(f => f.toInt).mkString(" "))
-    Trace.trace("\n  " + zPlaneProfile.map(f => f.toInt).mkString(" "))
+    /**
+     * Find the max point and verify that it is sufficiently large (as
+     * opposed to just background noise).
+     */
+    def locateAndValidate(profile: Seq[Float]): Option[Double] = {
+      val max = LocateMax.locateMax(profile)
+      val mean = profile.sum / profile.size
+      val sd = ImageUtil.stdDev(profile)
+      val stdDevOfMax = (max - mean).abs / sd
+      if (stdDevOfMax < minStdDev)
+        None
+      else
+        Some(max)
+    }
 
-    val xMax = xPlaneProfile.indexOf(xPlaneProfile.max)
-    val yMax = yPlaneProfile.indexOf(yPlaneProfile.max)
-    val zMax = zPlaneProfile.indexOf(zPlaneProfile.max)
-    Trace.trace
+    val posn = Seq(
+      locateAndValidate(xPlaneProfile),
+      locateAndValidate(yPlaneProfile),
+      locateAndValidate(zPlaneProfile))
 
-    val xPosn = LocateMax.locateMax(xPlaneProfile)
-    val yPosn = LocateMax.locateMax(yPlaneProfile)
-    val zPosn = LocateMax.locateMax(zPlaneProfile)
-    Trace.trace
+    if (true) { // TODO rm
 
-    new Point3d(xPosn, yPosn, zPosn)
+      def show(profile: Seq[Float], name: String, mx: Double) = {
+        val sorted = profile.sorted
+        val sd = ImageUtil.stdDev(profile)
+        val mean = sorted.sum / sorted.size
+        println("Profile values " + name + "     count: " + profile.size + "   stdDev: " + sd.formatted("%7.0f") +
+          "     sorted profile: " + sorted.map(p => ((p - mean).abs / sd).formatted("%7.2f")).mkString(" "))
+      }
+      show(xPlaneProfile, "X", posn(0).get)
+      show(yPlaneProfile, "Y", posn(1).get)
+      show(zPlaneProfile, "Z", posn(2).get)
+    }
+
+    val flat = posn.flatten
+    if (flat.size == 3)
+      Some(new Point3d(flat(0), flat(1), flat(2)))
+    else
+      None
   }
 
 }

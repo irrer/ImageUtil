@@ -214,4 +214,16 @@ object ImageUtil {
     val hiX = maxX + ext
     search(maxIteration, new Pt(loX), new Pt(hiX))
   }
+
+  /**
+   * Calculate standard deviation.
+   */
+  def stdDev(list: Seq[Float]): Double = {
+    val mean = list.sum / list.size
+    val sumSq = list.map(d => (d - mean) * (d - mean)).sum
+    val variance = sumSq / list.size
+    val sd = Math.sqrt(variance)
+    sd
+  }
+
 }
