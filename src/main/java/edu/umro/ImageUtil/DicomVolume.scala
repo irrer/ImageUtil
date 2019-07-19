@@ -38,8 +38,6 @@ case class DicomVolume(volume: Seq[DicomImage]) {
    * Get the value of a voxel.
    */
   def getXYZ(x: Int, y: Int, z: Int) = {
-    if (volume(z).get(x, y) == 0) // TODO rm
-      System.currentTimeMillis
     volume(z).get(x, y)
   }
 
@@ -71,8 +69,6 @@ case class DicomVolume(volume: Seq[DicomImage]) {
     ) yield (new Point3i(x, y, z))
 
     val max = vList.maxBy(v => sum(v, size))
-    //    val j = vList.map(v => sum(v, size)) // TODO rm
-    //    println("\n" + vList.map(v => sum(v, size).toInt + " " + v).mkString("\n")) // TODO rm
     max
   }
 
@@ -122,20 +118,6 @@ case class DicomVolume(volume: Seq[DicomImage]) {
       locateAndValidate(yPlaneProfile),
       locateAndValidate(zPlaneProfile))
 
-    if (true) { // TODO rm
-
-      def show(profile: Seq[Float], name: String, mx: Double) = {
-        val sorted = profile.sorted
-        val sd = ImageUtil.stdDev(profile)
-        val mean = sorted.sum / sorted.size
-        println("Profile values " + name + "     count: " + profile.size + "   stdDev: " + sd.formatted("%7.0f") +
-          "     sorted profile: " + sorted.map(p => ((p - mean).abs / sd).formatted("%7.2f")).mkString(" "))
-      }
-      show(xPlaneProfile, "X", posn(0).get)
-      show(yPlaneProfile, "Y", posn(1).get)
-      show(zPlaneProfile, "Z", posn(2).get)
-    }
-
     val flat = posn.flatten
     if (flat.size == 3)
       Some(new Point3d(flat(0), flat(1), flat(2)))
@@ -148,8 +130,6 @@ case class DicomVolume(volume: Seq[DicomImage]) {
 object DicomVolume {
 
   private def slicePosition(attributeList: AttributeList): Double = {
-    val j = attributeList.get(TagFromName.ImagePositionPatient).getDoubleValues()(2) // TODO rm
-    val s = attributeList.get(TagFromName.SOPInstanceUID).getSingleStringValueOrEmptyString // TODO rm
     attributeList.get(TagFromName.ImagePositionPatient).getDoubleValues()(2)
   }
 
