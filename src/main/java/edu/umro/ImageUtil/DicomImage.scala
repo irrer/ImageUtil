@@ -43,7 +43,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def get(x: Int, y: Int) = {
     try pixelData(y)(x)
     catch {
-      case _ => {
+      case t: Throwable => {
         println("x: " + x + "    y: " + y)
         0.toFloat
       }

@@ -134,6 +134,41 @@ object ImageUtil {
   }
 
   /**
+   * Make the color map brighter or dimmer by multiplying colors by the given factor.  If
+   * the factor is greater than one it will make the map brighter, less than
+   * one will make it dimmer.  Negative numbers will make it all black.  A factor of 255 or
+   * greater will keep black pixels black and change all others to maximum brightness.
+   */
+  def adjustBrightness(factor: Double, colorMap: IndexedSeq[Int]): IndexedSeq[Int] = {
+    def adj(c: Int): Int = Math.max(0, Math.min((c * factor).round.toInt, 255))
+
+    def adjust(clr: Int): Int = {
+      val c = new Color(clr)
+      val c2 = new Color(adj(c.getRed), adj(c.getGreen), adj(c.getBlue))
+      c2.getRGB
+    }
+    colorMap.map(clr => adjust(clr))
+  }
+
+  /**
+   * Set the minimum pixel brightness.
+   */
+  def setColorMapFloor(min: Int, colorMap: IndexedSeq[Int]): IndexedSeq[Int] = {
+
+    def brightness(clr: Int): Int = {
+      val c = new Color(clr)
+      ((c.getRed + c.getGreen + c.getBlue) / 3.0).floor.toInt
+    }
+
+    def minColor = colorMap.sortBy(c => (brightness(c) - min).abs).head
+
+    def adjust(clr: Int): Int = {
+      if (brightness(clr) < min) minColor else clr
+    }
+    colorMap.map(clr => adjust(clr))
+  }
+
+  /**
    * Given a range, return a list of major graticule positions within that
    * range that will make a user friendly display.
    *
