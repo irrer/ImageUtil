@@ -615,7 +615,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       val spline = LocateMax.toCubicSpline(profile)
       val maxY = spline.evaluate(maxX)
 
-      if (true) { // TODO rm
+      if (false) { // TODO rm
         println("------- begin -----")
         val scale = 20
         val ps = profile.size

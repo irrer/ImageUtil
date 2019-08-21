@@ -25,29 +25,31 @@ object TestDicomImage_getMaxPoint {
     al
   }
 
+  def di(d: Double) = d.round.toInt
+
   def main(args: Array[String]): Unit = {
 
-    val radius_mm = 6.0
+    val searchRadius_mm = 6.0
+    val bbRadius_mm = 1.5
     val minStdDev = 1.2
     val zoomScale = 21
 
     /**
-     * Cut a square rectangle out of the middle of the image twice the size of the radius_mm
+     * Cut a square rectangle out of the middle of the image twice the size of the searchRadius_mm
      */
-    def cutRect(al: AttributeList): DicomImage = {
+    def cutRect(al: AttributeList): Rectangle = {
       val pixSpace = al.get(TagFromName.ImagePlanePixelSpacing).getDoubleValues
       val x_mm = pixSpace(0)
       val y_mm = pixSpace(1)
       val rows = al.get(TagFromName.Rows).getIntegerValues.head
       val cols = al.get(TagFromName.Columns).getIntegerValues.head
 
-      val x = ((cols / 2) - (radius_mm / x_mm)).round.toInt
-      val y = ((rows / 2) - (radius_mm / y_mm)).round.toInt
-      val w = ((radius_mm * 2) / x_mm).round.toInt
-      val h = ((radius_mm * 2) / y_mm).round.toInt
+      val x = ((cols / 2) - (searchRadius_mm / x_mm)).round.toInt
+      val y = ((rows / 2) - (searchRadius_mm / y_mm)).round.toInt
+      val w = ((searchRadius_mm * 2) / x_mm).round.toInt
+      val h = ((searchRadius_mm * 2) / y_mm).round.toInt
 
-      val image = (new DicomImage(al)).getSubimage(new Rectangle(x, y, w, h))
-      image
+      new Rectangle(x, y, w, h)
     }
 
     def showMax(file: File, image: DicomImage, max: Point2D.Double) = {
@@ -81,11 +83,34 @@ object TestDicomImage_getMaxPoint {
     def testImage(file: File) = {
       println("Processing file " + file.getAbsolutePath)
       val al = readToAl(file)
-      val image = cutRect(al)
+      val wholeImage = new DicomImage(al)
+
+      val pixSpace = al.get(TagFromName.ImagePlanePixelSpacing).getDoubleValues
+      val x_mm = pixSpace(0)
+      val y_mm = pixSpace(1)
+      val xSizeBB = ((bbRadius_mm * 2) / x_mm).round.toInt
+      val ySizeBB = ((bbRadius_mm * 2) / y_mm).round.toInt
+
+      val centerRect = cutRect(al)
+      val centerImage = wholeImage.getSubimage(centerRect)
       // val image = oneDot(cutRect(al))
-      image.getMaxRect(xSize, ySize)
-      image.getMaxPoint(minStdDev) match {
-        case Some(max) => showMax(file, image, max)
+      val xyMaxCorner = centerImage.getMaxRect(xSizeBB, ySizeBB)
+
+      val bbRect = {
+        val bbRectX = centerRect.getX + xyMaxCorner.getX - (xSizeBB / 2.0)
+        val bbRectY = centerRect.getY + xyMaxCorner.getY - (ySizeBB / 2.0)
+        val bbRectW = xSizeBB * 2.0
+        val bbRectH = ySizeBB * 2.0
+        new Rectangle(di(bbRectX), di(bbRectY), di(bbRectW), di(bbRectH))
+      }
+
+      val bbImage = wholeImage.getSubimage(bbRect)
+
+      bbImage.getMaxPoint(minStdDev) match {
+        case Some(bbMax) => {
+          val max = new Point2D.Double(bbMax.getX + bbRect.getX, bbMax.getY + bbRect.getY)
+          showMax(file, bbImage, bbMax)
+        }
         case _ => println("Did not find a max point")
       }
     }
