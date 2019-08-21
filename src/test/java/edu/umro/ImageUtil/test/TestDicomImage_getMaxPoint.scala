@@ -54,11 +54,25 @@ object TestDicomImage_getMaxPoint {
 
     def showMax(file: File, image: DicomImage, max: Point2D.Double) = {
       println("Found max at: " + max)
+      if (true) {
+        val min = image.minPixelValue
+        print("     ")
+        for (x <- 0 until image.width)
+          print(x.formatted("%4d"))
+        println
+        for (y <- 0 until image.height) {
+          print(y.formatted("%4d:"))
+          for (x <- 0 until image.width) {
+            print((image.get(x, y) - min).round.toInt.formatted("%4d"))
+          }
+          println
+        }
+      }
+      println("Found max at: " + max)
 
       val pngFile = new File(outDir, file.getName.replaceAll(".dcm$", ".png"))
       //val bufImg = ImageUtil.magnify(image.toDeepColorBufferedImage(0), zoomScale)
-      val colorMap = ImageUtil.rgbColorMap(Color.white)
-      val bufImg = ImageUtil.magnify(image.toBufferedImage(Color.yellow), zoomScale)
+      val bufImg = ImageUtil.magnify(image.toBufferedImage(Color.blue), zoomScale)
       val graphics = ImageUtil.getGraphics(bufImg)
       graphics.setColor(Color.white)
       val x = ((max.getX + 0.5) * zoomScale).floor.toInt
@@ -108,7 +122,6 @@ object TestDicomImage_getMaxPoint {
 
       bbImage.getMaxPoint(minStdDev) match {
         case Some(bbMax) => {
-          val max = new Point2D.Double(bbMax.getX + bbRect.getX, bbMax.getY + bbRect.getY)
           showMax(file, bbImage, bbMax)
         }
         case _ => println("Did not find a max point")

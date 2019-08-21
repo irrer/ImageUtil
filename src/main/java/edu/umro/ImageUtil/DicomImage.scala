@@ -615,17 +615,6 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       val spline = LocateMax.toCubicSpline(profile)
       val maxY = spline.evaluate(maxX)
 
-      if (false) { // TODO rm
-        println("------- begin -----")
-        val scale = 20
-        val ps = profile.size
-        for (i <- (0 until (scale * ps))) {
-          val x = i / scale.toFloat
-          println(x.formatted("%10.2f") + ", " + spline.evaluate(x).formatted("%10.2f"))
-        }
-        println("------- end -----")
-      }
-
       val mean = profile.sum / profile.size
       val sd = ImageUtil.stdDev(profile)
       val stdDevOfMax = (maxY - mean).abs / sd
@@ -647,7 +636,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
    * Get the coordinates of the upper left corner of the group of pixels of the given size that have the sum of the largest values.
    */
   def getMaxRect(xSize: Int, ySize: Int): Point2i = {
-    val rectList = for (x <- 0 until (width - xSize); y <- 0 until (height - ySize)) yield { (x, y, getSubimage(new Rectangle(x, y, xSize, ySize)).sum) }
+    val rectList = for (x <- 0 to (width - xSize); y <- 0 to (height - ySize)) yield { (x, y, getSubimage(new Rectangle(x, y, xSize, ySize)).sum) }
     val max = rectList.maxBy(_._3)
     new Point2i(max._1, max._2)
   }
