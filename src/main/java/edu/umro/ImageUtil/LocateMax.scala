@@ -12,7 +12,7 @@ object LocateMax {
   /**
    * Convert a list to a cubic spline
    */
-  private def toCubicSpline(data: Seq[Float]): CubicSpline = new CubicSpline(data.indices.toArray.map(s => s.toDouble), data.toArray.map(f => f.toDouble))
+  def toCubicSpline(data: Seq[Float]): CubicSpline = new CubicSpline(data.indices.toArray.map(s => s.toDouble), data.toArray.map(f => f.toDouble))
 
   /** Maximum number of iterations to approximate answer. */
   private val minIteration = 10

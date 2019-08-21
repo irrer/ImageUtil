@@ -9,6 +9,8 @@ import java.awt.Rectangle
 import java.awt.Point
 import edu.umro.ScalaUtil.Trace
 import java.security.InvalidParameterException
+import java.awt.geom.Point2D
+import javax.vecmath.Point2i
 
 class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
@@ -75,6 +77,11 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def rowSums = {
     pixelData.map(row => row.sum)
   }
+
+  /**
+   * Get the sum of all of the pixels.
+   */
+  def sum = rowSums.sum
 
   /**
    * Get a list of the smallest pixel values.
@@ -415,7 +422,7 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
      * Given a pixel level, return the RGB color.
      */
     def levelToColor(level: Float): Int = {
-      val i = (level * ratio).round.toInt
+      val i = ((level - min) * ratio).round.toInt
 
       i match {
         case _ if (i < 0) => rgbColorMap(0)
@@ -593,6 +600,57 @@ class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     }
   }
 
+  /**
+   * Get the coordinates of the maximum point in the image.  The standard deviation of the point must be at least
+   * larger than the given standard deviation.  The reason for this is to reject instances where the image has no
+   * clear maximum.
+   */
+  def getMaxPoint(minStdDev: Double): Option[Point2D.Double] = {
+    /**
+     * Find the max point and verify that it is sufficiently large (as
+     * opposed to just background noise).
+     */
+    def locateAndValidate(profile: Seq[Float]): Option[Double] = {
+      val maxX = LocateMax.locateMax(profile)
+      val spline = LocateMax.toCubicSpline(profile)
+      val maxY = spline.evaluate(maxX)
+
+      if (true) { // TODO rm
+        println("------- begin -----")
+        val scale = 20
+        val ps = profile.size
+        for (i <- (0 until (scale * ps))) {
+          val x = i / scale.toFloat
+          println(x.formatted("%10.2f") + ", " + spline.evaluate(x).formatted("%10.2f"))
+        }
+        println("------- end -----")
+      }
+
+      val mean = profile.sum / profile.size
+      val sd = ImageUtil.stdDev(profile)
+      val stdDevOfMax = (maxY - mean).abs / sd
+      if (stdDevOfMax < minStdDev)
+        None
+      else
+        Some(maxX)
+    }
+
+    val posn = Seq(locateAndValidate(columnSums), locateAndValidate(rowSums))
+
+    val flat = posn.flatten
+    if (flat.size == 2)
+      Some(new Point2D.Double(flat(0), flat(1)))
+    else
+      None
+  }
+  /**
+   * Get the coordinates of the upper left corner of the group of pixels of the given size that have the sum of the largest values.
+   */
+  def getMaxRect(xSize: Int, ySize: Int): Point2i = {
+    val rectList = for (x <- 0 until (width - xSize); y <- 0 until (height - ySize)) yield { (x, y, getSubimage(new Rectangle(x, y, xSize, ySize)).sum) }
+    val max = rectList.maxBy(_._3)
+    new Point2i(max._1, max._2)
+  }
 }
 
 object DicomImage {
