@@ -12,7 +12,7 @@ import java.security.InvalidParameterException
 import java.awt.geom.Point2D
 import javax.vecmath.Point2i
 
-class DicomImage(private val pixelData: IndexedSeq[IndexedSeq[Float]]) {
+class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
 
   val Rows = pixelData.size
