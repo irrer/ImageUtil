@@ -261,4 +261,12 @@ object ImageUtil {
     sd
   }
 
+  /**
+   * Set the graphics line thickness.
+   */
+  def setLineThickness(graphics: Graphics2D, lineThickness: Double) = {
+    graphics.setStroke(new BasicStroke(lineThickness.toFloat))
+
+  }
+
 }
