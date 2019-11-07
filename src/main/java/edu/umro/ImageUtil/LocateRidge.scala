@@ -64,7 +64,6 @@ object LocateRidge {
    * precisely locate the center of mass for a horizontal ridge by finding the center of mass for each column of pixels and then taking the mean.
    */
   private def centerOfMassHorz(col: Pix, rowList: Seq[Pix], height: Double, array: IndexedSeq[IndexedSeq[Float]]): Double = {
-    //Trace.trace("col: " + col.index.formatted("%5d") + " : " + rowList.map(row => array(row.index)(col.index).toInt.formatted("%5d")).mkString)
 
     val center =
       if (false) {
@@ -102,7 +101,8 @@ object LocateRidge {
    * @param rectangle: Bounding area of interest.
    */
   def locateVertical(array: IndexedSeq[IndexedSeq[Float]], rectangle: Rectangle2D.Double): Double = {
-    val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height)
+    val width = array.head.size
+    val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height).filter(pix => (pix.index >= 0) && (pix.index < width))
     val colList = pixelSizeList(rectangle.x, rectangle.x + rectangle.width)
 
     val xList = rowList.map(row => centerOfMassVert(row, colList, rectangle.width, array) * row.size)
@@ -121,8 +121,9 @@ object LocateRidge {
    * @param rectangle: Bounding area of interest.
    */
   def locateHorizontal(array: IndexedSeq[IndexedSeq[Float]], rectangle: Rectangle2D.Double): Double = {
+    val height = array.size
     val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height)
-    val colList = pixelSizeList(rectangle.x, rectangle.x + rectangle.width)
+    val colList = pixelSizeList(rectangle.x, rectangle.x + rectangle.width).filter(pix => (pix.index >= 0) && (pix.index < height))
 
     val yList = colList.map(col => centerOfMassHorz(col, rowList, rectangle.height, array) * col.size)
     val y = yList.sum / rectangle.width
