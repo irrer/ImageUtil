@@ -6,7 +6,7 @@
     <version>0.0.1</version>    
     <dependencies>
         <dependency> <groupId>pixelmed</groupId>            <artifactId>pixelmed</artifactId>       <version>20180401</version>                        </dependency>
-        <dependency> <groupId>edu.umro</groupId>            <artifactId>ScalaUtil_2.12</artifactId> <version>0.0.11</version>                          </dependency>
+        <dependency> <groupId>edu.umro</groupId>            <artifactId>ScalaUtil_2.12</artifactId> <version>0.0.12</version>                          </dependency>
         <dependency> <groupId>org.scalatest</groupId>       <artifactId>scalatest_2.12</artifactId> <version>3.2.0-SNAP9</version> <scope>test</scope> </dependency>
         <!-- https://mvnrepository.com/artifact/com.github.haifengl/smile-core -->
         <dependency> <groupId>org.apache.logging.log4j</groupId> <artifactId>log4j-slf4j-impl</artifactId>           <version>2.10.0</version>          </dependency>
