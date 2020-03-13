@@ -11,6 +11,7 @@ import edu.umro.ScalaUtil.Trace
 import java.security.InvalidParameterException
 import java.awt.geom.Point2D
 import javax.vecmath.Point2i
+import java.awt.geom.Rectangle2D
 
 class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
@@ -640,6 +641,65 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     val max = rectList.maxBy(_._3)
     new Point2i(max._1, max._2)
   }
+
+  /**
+   * Get the average pixel value within the bounds of the given rectangle.  If a
+   * bound cuts through a pixel, then consider the partial weight of that pixel.
+   *
+   * Approach is to cut the area into 9 rectangles, center, 4 edges, and 4 corners.
+   * Find the sum of each and use the grand sum to calculate the average.
+   *
+   * @param tblr_pix: Bounds of rectangle in pixel coordinates.
+   */
+  def averageOfRectangle(rect: Rectangle2D.Double): Double = {
+    import java.awt.Rectangle
+
+    // TODO this case could be handled, but there has not been a practical case that requires it.
+    if ((rect.getX.floor == (rect.getX + rect.getWidth).floor) ||
+      (rect.getX.floor == (rect.getX + rect.getWidth).floor))
+      throw new RuntimeException("Rectangle must specify area that spans more than one pixel both vertically and horizontally.  Rectangle given: " + rect)
+
+    val r = rect.getX + rect.getWidth // right-hand edge
+    val b = rect.getY + rect.getHeight // bottom edge
+
+    // bounds of center pixels (which comprise the majority of them)
+    val x = rect.getX.ceil.toInt
+    val y = rect.getY.ceil.toInt
+    val w = r.floor.toInt - x
+    val h = b.floor.toInt - y
+
+    val topFrac = (rect.getY.ceil - rect.getY).toFloat
+    val botFrac = (b - b.floor).toFloat
+    val lftFrac = (rect.getX.ceil - rect.getX).toFloat
+    val rgtFrac = (r - r.floor).toFloat
+
+    // Sum of large area in the middle
+    val centerSum = getSubimage(new Rectangle(x, y, w, h)).sum
+
+    val topSum = getSubimage(new Rectangle(x, rect.getY.floor.toInt, w, 1)).sum * topFrac
+    val botSum = getSubimage(new Rectangle(x, b.floor.toInt, w, 1)).sum * botFrac
+    val lftSum = getSubimage(new Rectangle(rect.getX.floor.toInt, y, 1, h)).sum * lftFrac
+    val rgtSum = getSubimage(new Rectangle(r.floor.toInt, y, 1, h)).sum * rgtFrac
+
+    val topLft = get(rect.getX.floor.toInt, rect.getY.floor.toInt) * topFrac * lftFrac
+    val topRgt = get(r.floor.toInt, rect.getY.floor.toInt) * topFrac * rgtFrac
+    val botLft = get(rect.getX.floor.toInt, b.floor.toInt) * botFrac * lftFrac
+    val botRgt = get(r.floor.toInt, b.floor.toInt) * botFrac * rgtFrac
+
+    if (false) {
+      def fmt(d: Double) = d.formatted("    %9.5f")
+      Trace.trace("\n" +
+        fmt(topLft) + fmt(topSum) + fmt(topRgt) + "\n" +
+        fmt(lftSum) + fmt(centerSum) + fmt(rgtSum) + "\n" +
+        fmt(botLft) + fmt(botSum) + fmt(botRgt))
+    }
+
+    val sum = centerSum + topSum + botSum + lftSum + rgtSum + topLft + topRgt + botLft + botRgt
+
+    val avg = sum / (rect.getWidth * rect.getHeight)
+    avg
+  }
+
 }
 
 object DicomImage {
