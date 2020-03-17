@@ -3,6 +3,7 @@ package edu.umro.ImageUtil
 import java.io.File
 import com.pixelmed.dicom.AttributeList
 import com.pixelmed.dicom.TagFromName
+import com.pixelmed.dicom.SOPClass
 
 object DicomToDeepColorPng {
 
@@ -57,8 +58,13 @@ object DicomToDeepColorPng {
     ImageUtil.writePngFile(bufImage, imageFile)
   }
 
+  private def isImageStg(al: AttributeList) = {
+    val c = al.get(TagFromName.SOPClassUID).getSingleStringValueOrEmptyString
+    SOPClass.isImageStorage(c)
+  }
+
   def main(args: Array[String]): Unit = {
-    val list = args.map(fileName => listRegularFiles(new File(fileName))).flatten.map(file => getImageAl(file)).flatten
+    val list = args.map(fileName => listRegularFiles(new File(fileName))).flatten.map(file => getImageAl(file)).flatten.filter(fa => isImageStg(fa._2))
     list.map(fd => toPng(fd._1, fd._2))
   }
 }
