@@ -675,6 +675,9 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
     // Sum of large area in the middle
     val centerSum = getSubimage(new Rectangle(x, y, w, h)).sum
+    if (true) { // TODO rm
+      println("center pixels:\n" + getSubimage(new Rectangle(x, y, w, h)).pixelsToText.split("\n").take(21).mkString("\n"))
+    }
 
     val topSum = getSubimage(new Rectangle(x, rect.getY.floor.toInt, w, 1)).sum * topFrac
     val botSum = getSubimage(new Rectangle(x, b.floor.toInt, w, 1)).sum * botFrac
@@ -686,7 +689,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     val botLft = get(rect.getX.floor.toInt, b.floor.toInt) * botFrac * lftFrac
     val botRgt = get(r.floor.toInt, b.floor.toInt) * botFrac * rgtFrac
 
-    if (false) {
+    if (false) { // TODO rm
       def fmt(d: Double) = d.formatted("    %9.5f")
       Trace.trace("\n" +
         fmt(topLft) + fmt(topSum) + fmt(topRgt) + "\n" +
