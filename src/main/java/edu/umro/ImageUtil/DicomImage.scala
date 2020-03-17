@@ -700,6 +700,23 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     avg
   }
 
+  /**
+   * Return the pixels as rows and columns of numbers.  This is mostly a convenience function for debugging.
+   */
+  def pixelsToText: String = {
+    /** Maximum width needed to display any number. */
+    val numLen = Seq[Float](minPixelValue, maxPixelValue, width, height).map(n => n.toInt.toString.size).max
+    def fmtTxt(t: String) = t.formatted("%" + (numLen + 1) + "s")
+    def fmt(f: Float) = f.toInt.formatted("%" + (numLen + 1) + "d")
+
+    val header = fmtTxt("") + "   " + (0 until width).map(x => fmt(x)).mkString + "\n"
+    def makeRow(y: Int) = fmt(y) + " : " + pixelData(y).map(p => fmt(p)).mkString + "\n"
+
+    val text = header + (0 until height).map(y => makeRow(y)).mkString
+
+    text
+  }
+
 }
 
 object DicomImage {
