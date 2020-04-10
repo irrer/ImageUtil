@@ -499,16 +499,19 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def toDeepColorBufferedImage(percentToDrop: Double): BufferedImage = {
     val numDrop = ((Rows * Columns) * ((percentToDrop / 2) / 100.0)).round.toInt
     def trim(total: Int, hist: Seq[DicomImage.HistPoint]): Seq[DicomImage.HistPoint] = {
-      if (total < numDrop)
+      if ((total < numDrop) && hist.nonEmpty)
         trim(total + hist.head.count, hist.tail)
       else hist
     }
-    val dropLo = trim(0, histogram)
-    val minPix = dropLo.head.value
-    val dropHi = trim(0, dropLo.reverse)
-    val maxPix = dropHi.head.value
 
-    toDeepColorBufferedImage(minPix, maxPix)
+    if (histogram.size < 1276) {
+      val dropLo = trim(0, histogram)
+      val minPix = if (dropLo.isEmpty) minPixelValue else dropLo.head.value
+      val dropHi = trim(0, dropLo.reverse)
+      val maxPix = if (dropLo.isEmpty) maxPixelValue else dropHi.head.value
+
+      toDeepColorBufferedImage(minPix, maxPix)
+    } else toDeepColorBufferedImage(minPixelValue, maxPixelValue)
   }
 
   /**
