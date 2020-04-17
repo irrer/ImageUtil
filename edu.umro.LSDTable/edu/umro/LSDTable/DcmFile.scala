@@ -81,7 +81,7 @@ case class DcmFile(file: File) {
         map(attr => attr.getStringValues).
         flatten.
         map(s => sToDbl(s)).
-        map(angle => angle.abs)
+        map(angle => LSDUtil.angleCloseToZero(angle).abs)
     if (angleList.isEmpty) 0 else angleList.max
   }
 

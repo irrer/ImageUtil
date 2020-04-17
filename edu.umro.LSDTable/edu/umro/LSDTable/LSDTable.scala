@@ -60,11 +60,16 @@ object LSDTable {
    * Require all DICOM files to have the same frame of reference.  If they don't, then print a message and return false.
    */
   private def allSameFrameOfReference(allDcmFile: Seq[DcmFile]) = {
-    val forList = allDcmFile.groupBy(df => df.get(TagFromName.FrameOfReferenceUID))
-    if (forList.size > 1) {
-      val forDesc = forList.map(fr => fr._2.head.toString + " --> " + fr._2.head.get(TagFromName.FrameOfReferenceUID)).mkString("\n    ")
-      usage("There are " + forList.size + " frames of reference, but there should be only one.  Differing files are:\n    " + forDesc)
+    def sameFOR(group: Seq[DcmFile]) = {
+      val forList = group.groupBy(df => df.get(TagFromName.FrameOfReferenceUID))
+      if (forList.size > 1) {
+        val forDesc = forList.map(fr => fr._2.head.toString + " --> " + fr._2.head.get(TagFromName.FrameOfReferenceUID)).mkString("\n    ")
+        usage("There are " + forList.size + " frames of reference, but there should be only one.  Differing files are:\n    " + forDesc)
+      }
     }
+
+    val modalityGroups = allDcmFile.groupBy(df => df.get(TagFromName.Modality))
+    modalityGroups.map(mg => sameFOR(mg._2))
   }
 
   private def cullDuplicates(allDcmFile: Seq[DcmFile]): Seq[DcmFile] = {
@@ -193,6 +198,7 @@ object LSDTable {
 
     val start = System.currentTimeMillis
     try {
+      prnt("Linac Simulation Dicom editor for table pitch/roll/rotation correction (LSDtab)")
 
       val inputDir = establishInputDirectory(args)
 
