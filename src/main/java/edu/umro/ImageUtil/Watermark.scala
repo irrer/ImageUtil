@@ -129,17 +129,35 @@ class Watermark(watermarkImage: BufferedImage, top: Boolean, left: Boolean, perc
         }
       }
 
-      // if the area to be watermarked is dark then make watermark brighter, or vice versa
+      // force pixels to change by at this this amount
+      val minChange = 255 * (percentChange / 100)
+      val minPixChange = if (isDark) minChange.round.toInt else -minChange.round.toInt
 
+      // if the area to be watermarked is dark then make watermark brighter, or vice versa
       def changePix(p: Pix) = {
         val change = pctChange * p.brightness / 100
         val mult = (if (isDark) (1 + change) else (1 - change))
         val v = image.getRGB(p.x, p.y)
-        val r = (((v >> 16) & 0xff) * mult).round.toInt & 0xff
-        val g = (((v >> 8) & 0xff) * mult).round.toInt & 0xff
-        val b = ((v & 0xff) * mult).round.toInt & 0xff
 
-        val v2 = (r << 16) + (g << 8) + b
+        val rBefore = (v >> 16) & 0xff
+        val gBefore = (v >> 8) & 0xff
+        val bBefore = v & 0xff
+
+        val rAfter = Math.min((rBefore * mult).round.toInt, 255) & 0xff
+        val gAfter = Math.min((gBefore * mult).round.toInt, 255) & 0xff
+        val bAfter = Math.min((bBefore * mult).round.toInt, 255) & 0xff
+
+        val v2 = {
+          val before = rBefore + gBefore + bBefore
+          val after = rAfter + gAfter + bAfter
+          def change = ((before.toDouble - after) / after).abs
+          if ((after == 0) || (change < minChange)) {
+            (Math.max(0, Math.min(255, rAfter + minPixChange)) << 16) +
+              (Math.max(0, Math.min(255, gAfter + minPixChange)) << 8) +
+              (Math.max(0, Math.min(255, bAfter + minPixChange)))
+          } else
+            (rAfter << 16) + (gAfter << 8) + bAfter
+        }
         image.setRGB(p.x, p.y, v2)
       }
       pixList.map(p => changePix(p))
