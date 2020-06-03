@@ -504,11 +504,11 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       else hist
     }
 
-    if (histogram.size < 1276) {
+    if (histogram.size >= 1276) {
       val dropLo = trim(0, histogram)
       val minPix = if (dropLo.isEmpty) minPixelValue else dropLo.head.value
       val dropHi = trim(0, dropLo.reverse)
-      val maxPix = if (dropLo.isEmpty) maxPixelValue else dropHi.head.value
+      val maxPix = if (dropHi.isEmpty) maxPixelValue else dropHi.head.value
 
       toDeepColorBufferedImage(minPix, maxPix)
     } else toDeepColorBufferedImage(minPixelValue, maxPixelValue)
