@@ -101,11 +101,13 @@ object ImageUtil {
    * Find the center of mass of a set of points, indexed starting from 0.
    */
   def centerOfMass(massList: IndexedSeq[Float]): Float = {
-    val massSum = massList.sum
     if (massList.isEmpty)
       0.toFloat
-    else
-      { massList.indices.map(i => i * massList(i)).sum } / massSum
+    else {
+      val massSum = massList.map(f => f.toDouble).sum
+      val sumList = massList.indices.map(i => i * massList(i).toDouble)
+      (sumList.sum / massSum).toFloat
+    }
   }
 
   /**
