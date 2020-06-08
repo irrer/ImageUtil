@@ -12,6 +12,10 @@ import org.scalatest.Finders
 import edu.umro.util.UMROGUID
 import edu.umro.ImageUtil.ImageUtil
 import javax.vecmath.Point2d
+import edu.umro.ImageUtil.IsoImagePlaneTranslator
+import edu.umro.ImageUtil.LocateMax
+import org.opensourcephysics.numerics.CubicSpline
+import edu.umro.ImageUtil.IsoImagePlaneTranslator
 
 object ConstructIdealDicom {
 
@@ -19,6 +23,8 @@ object ConstructIdealDicom {
 
   val outDir = new File("target/TestLocateEdge")
   outDir.mkdirs
+
+  def fmt(d: Double) = d.formatted("%20.15f")
 
   def readDicomFile(file: File) = {
     val al = new AttributeList
@@ -28,6 +34,11 @@ object ConstructIdealDicom {
 
   val MSK_WL_G090_C090file = new File(dir, "MSK_WL_G090_C090.dcm")
   val MSK_WL_G090_C270file = new File(dir, "MSK_WL_G090_C270.dcm")
+
+  val MSK_TB444_C270_6Xfile = new File(dir, "MSK_TB444_C270_6X.dcm")
+  val MSK_TB444_C090_6Xfile = new File(dir, "MSK_TB444_C090_6X.dcm")
+  val MSK_TB445_C270_6Xfile = new File(dir, "MSK_TB445_C270_6X.dcm")
+  val MSK_TB445_C090_6Xfile = new File(dir, "MSK_TB445_C090_6X.dcm")
 
   def writeDicomFile(al: AttributeList, name: String): Unit = {
 
@@ -51,6 +62,13 @@ object ConstructIdealDicom {
   val ballBackgroundCU = 3380.toShort
   val ballCenterCU = 2870.toShort
   val backgroundCU = 2.toShort
+
+  def leftEdgeBoundingRectangle(image: DicomImage) = {
+    val s = 200
+    val midW = image.width / 2
+    val midH = image.height / 2
+    val top = image.getSubimage(new Rectangle(midW - s, midH - border, s * 2, border * 2))
+  }
 
   def measureLeftEdge(image: DicomImage) = {
     println("----------------------------------------------")
@@ -247,7 +265,80 @@ object ConstructIdealDicom {
     }
   }
 
+  def centerOfMass(file: File) = {
+    val al = readDicomFile(file)
+    val di = new DicomImage(al)
+    val trans = new IsoImagePlaneTranslator(al)
+
+    val x = ImageUtil.centerOfMass(di.columnSums)
+    val y = ImageUtil.centerOfMass(di.rowSums)
+
+    val isoplane = trans.pix2Iso(x, y)
+
+    def fmt(d: Double) = d.formatted("%20.15f")
+    println(file.getName.formatted("%20s") + "  x,y " + fmt(x) + ", " + fmt(y) + "    image plane: " + fmt(isoplane.getX) + ", " + fmt(isoplane.getY))
+  }
+
+  def edgeBySlopes(al: AttributeList, rect: Rectangle): Unit = {
+    val border = 40
+    val di = new DicomImage(al)
+    val leftRect = di.getSubimage(rect)
+    val profile = {
+      val raw = leftRect.columnSums
+      val min = raw.min
+      val range = raw.max - min
+      val scale = raw.size / range
+
+      raw.map(r => (r - min) * scale)
+    }
+
+    val spline = new CubicSpline(profile.indices.toArray.map(s => s.toDouble), profile.map(f => f.toDouble).toArray)
+
+    def toSlope(i: Int, incr: Double) = {
+      val x = i * incr
+      val xLo = x - incr
+      val xHi = x + incr
+
+      val yLo = spline.evaluate(xLo)
+      val yHi = spline.evaluate(xHi)
+
+      val slope = (yHi - yLo) / (xHi - xLo)
+      (x, slope)
+    }
+
+    val steepestZoom = 10000
+    val steepestIncr = 1.0 / steepestZoom
+    val steepestX = (0 until (profile.size * steepestZoom)).map(i => toSlope(i, steepestIncr)).maxBy(_._2.abs)._1
+
+    val points = {
+      val zoom = 100000
+      val incr = 1.0 / zoom
+      (1 until (profile.size * zoom)).map(i => toSlope(i, incr)) //  .sortWith(s => 1 - Math.abs(s))
+    }
+    val best = points.sortBy(xy => (1 - xy._2.abs).abs).take(10).sortBy(_._1)
+
+    val bestText = best.map(xy => fmt(xy._1) + ",  " + fmt(xy._2))
+    val lo = best.filter(_._1 < steepestX).head._1
+    val hi = best.filter(_._1 > steepestX).head._1
+    //println(profile.map(y => fmt(y)).mkString("\n"))
+    val avg = ((lo + hi) / 2)
+
+    val mid = {
+      val loY = spline.evaluate(lo)
+      val hiY = spline.evaluate(hi)
+      val midY = (loY + hiY) / 2
+      points.minBy(m => (spline.evaluate(m._1) - midY).abs)._1
+    }
+
+    println("\nsteepestX: " + fmt(steepestX) +
+      "    lo: " + fmt(lo) + "  hi: " + fmt(hi) +
+      "    avg: " + fmt(avg) + " ==> " + fmt(avg + rect.getX) +
+      "    mid: " + fmt(mid) + " ==> " + fmt(mid + rect.getX))
+  }
+
   def main(args: Array[String]): Unit = {
+
+    val start = System.currentTimeMillis
     if (false) {
       val fileList = Seq(MSK_WL_G090_C090file, MSK_WL_G090_C270file)
       val alList = fileList.map(file => readDicomFile(file))
@@ -284,7 +375,7 @@ object ConstructIdealDicom {
       showPixelGrid(al, topEdge - b, bottomEdge + b, leftEdge - b, rightEdge + b)
     }
 
-    if (true) {
+    if (false) {
       val constA = Seq(5, 5, 5, 5, 5, 5, 5, 5, 5, 5).map(i => i.toFloat).toIndexedSeq
       println("Center of mass of constA size " + constA.size + " : " + ImageUtil.centerOfMass(constA))
 
@@ -316,7 +407,7 @@ object ConstructIdealDicom {
       writeDicomFile(edged, "edged")
     }
 
-    if (true) {
+    if (false) {
       val edged = new DicomImage(makeIdealBackgroundEdged)
       println("row sums    : " + edged.rowSums)
       println("column sums : " + edged.columnSums)
@@ -329,6 +420,49 @@ object ConstructIdealDicom {
       println("Center of mass of constA size " + constA.size + " : " + ImageUtil.centerOfMass(constA))
     }
 
+    if (false) {
+      Seq(
+        MSK_TB444_C270_6Xfile,
+        MSK_TB444_C090_6Xfile,
+        MSK_TB445_C270_6Xfile,
+        MSK_TB445_C090_6Xfile).sortBy(_.getName).map(f => centerOfMass(f))
+    }
+
+    if (false) {
+
+      val border = 40
+      val width = 1190
+      val height = 1190
+
+      val top = 374
+      val bottom = height - top
+      val left = 374
+      val right = width - left
+
+      val leftRect = new Rectangle(left - border, top + border, border * 2, (bottom - top) - (border * 2))
+      val rightRect = new Rectangle(right - border, top + border, border * 2, (bottom - top) - (border * 2))
+
+      edgeBySlopes(readDicomFile(MSK_TB444_C090_6Xfile), leftRect)
+      edgeBySlopes(readDicomFile(MSK_TB444_C090_6Xfile), rightRect)
+
+      println
+
+      edgeBySlopes(readDicomFile(MSK_TB444_C270_6Xfile), leftRect)
+      edgeBySlopes(readDicomFile(MSK_TB444_C270_6Xfile), rightRect)
+
+    }
+
+    if (true) {
+      val trans = new IsoImagePlaneTranslator(readDicomFile(MSK_TB444_C090_6Xfile))
+      println("isoplane X center avg: " + fmt(trans.pix2Iso(595.0307675, 1190 / 2.0).getX))
+
+      println("isoplane X center mid: " + fmt(trans.pix2Iso(594.46335, 1190 / 2.0).getX))
+
+      println("isoplane eyeballed: " + trans.pix2Iso(594.5, 592.0))
+    }
+
+    val elapsed = System.currentTimeMillis - start
+    println("done. elapsed ms: " + elapsed)
   }
 
 }
