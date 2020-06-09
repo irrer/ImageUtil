@@ -313,9 +313,23 @@ object ConstructIdealDicom {
     val points = {
       val zoom = 100000
       val incr = 1.0 / zoom
-      (1 until (profile.size * zoom)).map(i => toSlope(i, incr)) //  .sortWith(s => 1 - Math.abs(s))
+      (1 until (profile.size * zoom)).map(i => toSlope(i, incr))
     }
     val best = points.sortBy(xy => (1 - xy._2.abs).abs).take(10).sortBy(_._1)
+
+    if (false) {
+      val zoom = 20
+      val incr = 1.0 / zoom
+      println("slope profile")
+      (1 until (profile.size * zoom)).map(i => toSlope(i, incr)).map(is => println(fmt(is._2)))
+    }
+
+    if (false) {
+      val zoom = 20
+      val incr = 1.0 / zoom
+      println("gradient profile")
+      (1 until (profile.size * zoom)).map(i => spline.evaluate((i * incr) + incr) - spline.evaluate(i * incr)).map(g => println(fmt(g)))
+    }
 
     val bestText = best.map(xy => fmt(xy._1) + ",  " + fmt(xy._2))
     val lo = best.filter(_._1 < steepestX).head._1
@@ -459,6 +473,7 @@ object ConstructIdealDicom {
       println("isoplane X center mid: " + fmt(trans.pix2Iso(594.46335, 1190 / 2.0).getX))
 
       println("isoplane eyeballed: " + trans.pix2Iso(594.5, 592.0))
+      println("isoplane eyeballed: " + trans.pix2Iso(594.75, 592.25))
     }
 
     val elapsed = System.currentTimeMillis - start
