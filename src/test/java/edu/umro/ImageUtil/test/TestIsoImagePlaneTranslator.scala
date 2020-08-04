@@ -8,7 +8,6 @@ import java.awt.Rectangle
 import edu.umro.util.Utility
 import edu.umro.ImageUtil.ImageUtil
 import edu.umro.ImageUtil.IsoImagePlaneTranslator
-import edu.umro.ImageUtil.IsoImagePlaneTranslatorOld
 
 object TestIsoImagePlaneTranslator {
 

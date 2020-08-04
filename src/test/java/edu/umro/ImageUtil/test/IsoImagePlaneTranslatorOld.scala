@@ -1,9 +1,10 @@
-package edu.umro.ImageUtil
+package edu.umro.ImageUtil.test
 
 import com.pixelmed.dicom.AttributeList
 import java.awt.geom.Point2D
 import com.pixelmed.dicom.AttributeTag
 import com.pixelmed.dicom.TagFromName
+import edu.umro.ImageUtil.IsoImagePlaneTranslator
 //import org.aqa.webrun.phase2.Phase2Util
 
 /**
