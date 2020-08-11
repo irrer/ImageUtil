@@ -8,7 +8,8 @@ import com.pixelmed.dicom.TagFromName
 /**
  * Support mapping points between the isoplane and the image plane.  Isoplane values are in mm with
  * the origin at the center of the image.   Pixel plane values are in pixels with the origin in the
- * upper left corner of the image.
+ * upper left corner of the image.  Functions do not factor in XRayImageReceptorTranslation, which if
+ * needed, should be done by the caller.
  */
 
 class IsoImagePlaneTranslator(al: AttributeList) {
@@ -41,6 +42,19 @@ class IsoImagePlaneTranslator(al: AttributeList) {
       val x = RTImagePosition.getDoubleValues()(0) / beamExpansionRatio
       val y = (-(RTImagePosition.getDoubleValues()(1))) / beamExpansionRatio
       new Point2D.Double(x, y)
+    }
+  }
+
+  /**
+   * Center of image in gantry coordinates in mm.
+   */
+  val isoCenter: Point2D.Double = {
+    val at = al.get(TagFromName.XRayImageReceptorTranslation)
+    if (at == null)
+      new Point2D.Double(0, 0) // some devices do not support this
+    else {
+      val xy = at.getDoubleValues
+      new Point2D.Double(xy(0) / beamExpansionRatio, xy(1) / beamExpansionRatio)
     }
   }
 
