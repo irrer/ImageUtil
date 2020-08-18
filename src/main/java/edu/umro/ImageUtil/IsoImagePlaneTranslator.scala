@@ -46,7 +46,9 @@ class IsoImagePlaneTranslator(al: AttributeList) {
   }
 
   /**
-   * Center of image in gantry coordinates in mm.
+   * Center of image in isoplane coordinates in mm.  Note that DICOM
+   * standard gantry coordinates have the the sign of the Y axis negated,
+   * so that positive is up in the image.
    */
   val isoCenter: Point2D.Double = {
     val at = al.get(TagFromName.XRayImageReceptorTranslation)
