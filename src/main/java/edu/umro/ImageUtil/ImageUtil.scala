@@ -11,6 +11,7 @@ import java.awt.BasicStroke
 import java.io.File
 import javax.imageio.ImageIO
 import org.opensourcephysics.numerics.CubicSpline
+import edu.umro.ScalaUtil.Trace
 
 object ImageUtil {
 
@@ -95,6 +96,33 @@ object ImageUtil {
       for (xm <- (0 until factor); ym <- (0 until factor)) magnified.setRGB(x * factor + xm, y * factor + ym, rgb)
     }
     magnified
+  }
+
+  /**
+   * Given an image, rotate it clockwise by 90 degrees.
+   */
+  def rotate90(original: BufferedImage): BufferedImage = {
+    val rotated = new BufferedImage(original.getHeight, original.getWidth, original.getType)
+    val origWidth = original.getWidth
+    val origHeight = original.getHeight
+    for (x <- 0 until origWidth; y <- 0 until original.getHeight) {
+      rotated.setRGB(origHeight - 1 - y, x, original.getRGB(x, y))
+    }
+    rotated
+  }
+
+  /**
+   * Given an image, rotate it clockwise by 180 degrees.
+   */
+  def rotate180(original: BufferedImage): BufferedImage = {
+    rotate90(rotate90(original))
+  }
+
+  /**
+   * Given an image, rotate it clockwise by 270 degrees.
+   */
+  def rotate270(original: BufferedImage): BufferedImage = {
+    rotate90(rotate180(original))
   }
 
   /**
