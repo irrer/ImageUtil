@@ -99,6 +99,44 @@ object ImageUtil {
   }
 
   /**
+   * Given an image, mirror it vertically.  Pixels on the top will be on the bottom, and
+   * vice-versa.  Pixels on the left will stay on the left.  Pixels on the right will
+   * stay on the right.
+   */
+  def mirrorVertically(original: BufferedImage): BufferedImage = {
+    val width = original.getWidth
+    val height = original.getHeight
+    val mirrored = new BufferedImage(width, height, original.getType)
+    for (x <- 0 until width; y <- 0 until height) {
+      mirrored.setRGB(x, height - y - 1, original.getRGB(x, y))
+    }
+    mirrored
+  }
+
+  /**
+   * Given an image, mirror it horizontally.  Pixels on the left will be on the right, and
+   * vice-versa.  Pixels on the top will stay on the top.  Pixels on the bottom will
+   * stay on the bottom.
+   */
+  def mirrorHorizontally(original: BufferedImage): BufferedImage = {
+    val width = original.getWidth
+    val height = original.getHeight
+    val mirrored = new BufferedImage(width, height, original.getType)
+
+    for (x <- 0 until width; y <- 0 until height) {
+      if (true) { // TODO rm
+        val xx = width - x - 1
+        if ((xx < 0) || (y < 0))
+          Trace.trace
+        if ((xx > (width - 1)) || (y > (height - 1))) // TODO rm
+          Trace.trace
+      }
+      mirrored.setRGB(width - x - 1, y, original.getRGB(x, y))
+    }
+    mirrored
+  }
+
+  /**
    * Given an image, rotate it clockwise by 90 degrees.
    */
   def rotate90(original: BufferedImage): BufferedImage = {
