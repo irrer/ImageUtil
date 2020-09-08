@@ -124,13 +124,6 @@ object ImageUtil {
     val mirrored = new BufferedImage(width, height, original.getType)
 
     for (x <- 0 until width; y <- 0 until height) {
-      if (true) { // TODO rm
-        val xx = width - x - 1
-        if ((xx < 0) || (y < 0))
-          Trace.trace
-        if ((xx > (width - 1)) || (y > (height - 1))) // TODO rm
-          Trace.trace
-      }
       mirrored.setRGB(width - x - 1, y, original.getRGB(x, y))
     }
     mirrored
