@@ -50,15 +50,27 @@ class IsoImagePlaneTranslator(al: AttributeList) {
    * standard gantry coordinates have the the sign of the Y axis negated,
    * so that positive is up in the image.
    */
-  val isoCenter: Point2D.Double = {
+
+  val caxCenter_iso = {
     val at = al.get(TagFromName.XRayImageReceptorTranslation)
     if (at == null)
-      new Point2D.Double(0, 0) // some devices do not support this
+      new Point2D.Double(0, 0) // some devices do not support this, in which case the center of the image is assumed.
     else {
       val xy = at.getDoubleValues
-      new Point2D.Double(xy(0) / beamExpansionRatio, xy(1) / beamExpansionRatio)
+      new Point2D.Double(-xy(0) / beamExpansionRatio, (xy(1) / beamExpansionRatio))
     }
   }
+
+  /**
+   * Location in pixels of the CAX (center of rotation).  In other words, the
+   * point in pixels at which the CAX should be drawn.
+   */
+  val caxCenter_pix: Point2D.Double = iso2Pix(caxCenter_iso)
+
+  /**
+   * Location of the CAX (center of rotation) as iso coordinates.
+   */
+  //  val caxCenter_isoX = pix2Iso(caxCenter_pix)
 
   /** convert x distance in mm from isoplane to pixel plane. */
   def iso2PixDistX(x: Double) = x * expansionFactorX
@@ -88,7 +100,7 @@ class IsoImagePlaneTranslator(al: AttributeList) {
   /** convert a coordinate pair from pixel plane to isoplane in mm. */
   def pix2Iso(x: Double, y: Double): Point2D.Double = new Point2D.Double(pix2IsoCoordX(x), pix2IsoCoordY(y))
   /** convert a coordinate from pixel plane to isoplane in mm. */
-  def pix2Iso(isoPoint: Point2D.Double): Point2D.Double = pix2Iso(isoPoint.getX, isoPoint.getY)
+  def pix2Iso(pixPoint: Point2D.Double): Point2D.Double = pix2Iso(pixPoint.getX, pixPoint.getY)
 
   /** Minimum point in the isoplane that is still in the image plane (can appear on the imager). */
   val minImage_mm = pix2Iso(0, 0)
