@@ -503,7 +503,6 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
         trim(total + hist.head.count, hist.tail)
       else hist
     }
-    Trace.trace(histogram.size)
     if (histogram.size >= 1276) {
       val dropLo = trim(0, histogram)
       val minPix = if (dropLo.isEmpty) minPixelValue else dropLo.head.value
