@@ -1,9 +1,11 @@
 package edu.umro.ImageUtil
 
 import com.pixelmed.dicom.AttributeList
+
 import java.awt.geom.Point2D
 import com.pixelmed.dicom.AttributeTag
 import com.pixelmed.dicom.TagFromName
+import edu.umro.DicomDict.TagByName
 
 /**
  * Support mapping points between the isoplane and the image plane.  Isoplane values are in mm with
@@ -20,12 +22,12 @@ class IsoImagePlaneTranslator(al: AttributeList) {
   val width = intOf(TagFromName.Columns)
   val height = intOf(TagFromName.Rows)
 
-  private val ImagePlanePixelSpacing = al.get(TagFromName.ImagePlanePixelSpacing).getDoubleValues
+  private val ImagePlanePixelSpacing = al.get(TagByName.ImagePlanePixelSpacing).getDoubleValues
 
   val pixelSizeX = ImagePlanePixelSpacing(0)
   val pixelSizeY = ImagePlanePixelSpacing(1)
 
-  val beamExpansionRatio = dblOf(TagFromName.RTImageSID) / dblOf(TagFromName.RadiationMachineSAD)
+  val beamExpansionRatio = dblOf(TagByName.RTImageSID) / dblOf(TagByName.RadiationMachineSAD)
 
   // Multiply this value by a measurement in mm in the isoplane to get the corresponding value in pixels in the image plane.
   private val expansionFactorX = beamExpansionRatio / pixelSizeX
@@ -33,7 +35,7 @@ class IsoImagePlaneTranslator(al: AttributeList) {
 
   // Upper left corner of image in isoplane coordinates
   private val imageUpperLeft: Point2D.Double = {
-    val RTImagePosition = al.get(TagFromName.RTImagePosition)
+    val RTImagePosition = al.get(TagByName.RTImagePosition)
     if (RTImagePosition == null) {
       val x = -(((width - 1.0) / 2) * pixelSizeX) / beamExpansionRatio
       val y = -(((height - 1.0) / 2) * pixelSizeY) / beamExpansionRatio
@@ -52,7 +54,7 @@ class IsoImagePlaneTranslator(al: AttributeList) {
    */
 
   val caxCenter_iso = {
-    val at = al.get(TagFromName.XRayImageReceptorTranslation)
+    val at = al.get(TagByName.XRayImageReceptorTranslation)
     if (at == null)
       new Point2D.Double(0, 0) // some devices do not support this, in which case the center of the image is assumed.
     else {
@@ -117,13 +119,13 @@ class IsoImagePlaneTranslator(al: AttributeList) {
 
   override def toString = {
     "SID/SAD" + beamExpansionRatio.formatted("%12.8f") +
-      "    SID: " + dblOf(TagFromName.RTImageSID).formatted("%7.5f") + "    SAD: " + dblOf(TagFromName.RadiationMachineSAD).formatted("%7.5f") +
+      "    SID: " + dblOf(TagByName.RTImageSID).formatted("%7.5f") + "    SAD: " + dblOf(TagByName.RadiationMachineSAD).formatted("%7.5f") +
       "    height: " + height + ", " + "    width: " + width + ", " +
       "    ImagePlanePixelSpacing: " + pixelSizeX.formatted("%7.5f") + ", " + pixelSizeY.formatted("%7.5f")
   }
 
   val validRTImagePosition: Boolean = {
-    val RTImagePosition = al.get(TagFromName.RTImagePosition)
+    val RTImagePosition = al.get(TagByName.RTImagePosition)
     if (RTImagePosition == null)
       true
     else {

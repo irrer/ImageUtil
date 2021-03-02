@@ -1,16 +1,20 @@
 package learn
 
 import edu.umro.ImageUtil.LocateEdge
+
 import java.io.File
 import com.pixelmed.dicom.AttributeList
 import edu.umro.ImageUtil.DicomImage
+
 import java.awt.Rectangle
 import com.pixelmed.dicom.TagFromName
+import edu.umro.DicomDict.TagByName
 import edu.umro.ScalaUtil.DicomUtil
 import org.scalactic.source.Position.apply
 import org.scalatest.Finders
 import edu.umro.util.UMROGUID
 import edu.umro.ImageUtil.ImageUtil
+
 import javax.vecmath.Point2d
 import edu.umro.ImageUtil.IsoImagePlaneTranslator
 import edu.umro.ImageUtil.LocateMax
@@ -115,13 +119,13 @@ object ConstructIdealDicom {
   }
 
   def sadTo1000(al: AttributeList) = {
-    val RadiationMachineSAD = al.get(TagFromName.RadiationMachineSAD)
+    val RadiationMachineSAD = al.get(TagByName.RadiationMachineSAD)
     RadiationMachineSAD.removeValues
     RadiationMachineSAD.addValue(1000.0)
   }
 
   def sidTo1500(al: AttributeList) = {
-    val RTImageSID = al.get(TagFromName.RTImageSID)
+    val RTImageSID = al.get(TagByName.RTImageSID)
     RTImageSID.removeValues
     RTImageSID.addValue(1500.0)
   }
@@ -133,7 +137,7 @@ object ConstructIdealDicom {
   }
 
   def setCollAngle(al: AttributeList, collimatorAngle: Double) = {
-    val list = DicomUtil.findAllSingle(al, TagFromName.BeamLimitingDeviceAngle)
+    val list = DicomUtil.findAllSingle(al, TagByName.BeamLimitingDeviceAngle)
 
     list.map(at => {
       at.removeValues
@@ -142,7 +146,7 @@ object ConstructIdealDicom {
   }
 
   def setGantryAngle(al: AttributeList, gantryAngle: Double) = {
-    val list = DicomUtil.findAllSingle(al, TagFromName.GantryAngle)
+    val list = DicomUtil.findAllSingle(al, TagByName.GantryAngle)
 
     list.map(at => {
       at.removeValues

@@ -1,9 +1,11 @@
 package edu.umro.ImageUtil.test
 
 import com.pixelmed.dicom.AttributeList
+
 import java.awt.geom.Point2D
 import com.pixelmed.dicom.AttributeTag
 import com.pixelmed.dicom.TagFromName
+import edu.umro.DicomDict.TagByName
 import edu.umro.ImageUtil.IsoImagePlaneTranslator
 //import org.aqa.webrun.phase2.Phase2Util
 
@@ -24,9 +26,9 @@ class IsoImagePlaneTranslatorOld(al: AttributeList) {
   // Image center in pixels
   val imageCenter = new Point2D.Double(((width - 1.0) / 2), ((height - 1.0) / 2))
 
-  val beamExpansionRatio = dblOf(TagFromName.RTImageSID) / dblOf(TagFromName.RadiationMachineSAD)
+  val beamExpansionRatio = dblOf(TagByName.RTImageSID) / dblOf(TagByName.RadiationMachineSAD)
 
-  private val ImagePlanePixelSpacing = al.get(TagFromName.ImagePlanePixelSpacing).getDoubleValues
+  private val ImagePlanePixelSpacing = al.get(TagByName.ImagePlanePixelSpacing).getDoubleValues
 
   val pixelSizeX = ImagePlanePixelSpacing(0)
   val pixelSizeY = ImagePlanePixelSpacing(1)
@@ -80,7 +82,7 @@ class IsoImagePlaneTranslatorOld(al: AttributeList) {
 
   override def toString = {
     "SID/SAD" + beamExpansionRatio.formatted("%12.8f") +
-      "    SID: " + dblOf(TagFromName.RTImageSID).formatted("%7.5f") + "    SAD: " + dblOf(TagFromName.RadiationMachineSAD).formatted("%7.5f") +
+      "    SID: " + dblOf(TagByName.RTImageSID).formatted("%7.5f") + "    SAD: " + dblOf(TagByName.RadiationMachineSAD).formatted("%7.5f") +
       "    height: " + height + ", " + "    width: " + width + ", " +
       "    ImagePlanePixelSpacing: " + pixelSizeX.formatted("%7.5f") + ", " + pixelSizeY.formatted("%7.5f")
   }

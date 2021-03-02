@@ -117,60 +117,67 @@ case class DicomVolume(volume: Seq[DicomImage]) {
     max
   }
 
-  /**
-   * Get the point of the volume that is the center of the highest pixel intensity.  This is done by getting
-   * the profile in each of the three axis and finding the maximum point on the cubic spline curve.  Result
-   * is in units of voxels.
-   *
-   * If the standard deviation in any of the 3 dimensions is below the given minimum standard deviation, then
-   * return None, indicating that the maximum point found was not sufficiently distinguishable from
-   * noise to qualify as an object.
-   */
-  def getMaxPoint(minStdDev: Double): Option[Point3d] = {
-
-    // the sum of all planes perpendicular to the X axis
-    val xPlaneProfile = (0 until xSize).map(x => {
+  /** Get the sum of all planes perpendicular to the X axis */
+  def xPlaneProfile = {
+    val prof = (0 until xSize).map(x => {
       val xView = for (y <- 0 until ySize; z <- 0 until zSize) yield (getXYZ(x, y, z))
       xView.sum
     })
-
-    // the sum of all planes perpendicular to the Y axis
-    val yPlaneProfile = {
-      (0 until ySize).map(y => {
-        val yView = for (x <- 0 until xSize; z <- 0 until zSize) yield (getXYZ(x, y, z))
-        yView.sum
-      })
-    }
-
-    // the sum of all planes perpendicular to the Z axis
-    val zPlaneProfile = volume.map(img => img.rowSums.sum)
-
-    /**
-     * Find the max point and verify that it is sufficiently large (as
-     * opposed to just background noise).
-     */
-    def locateAndValidate(profile: Seq[Float]): Option[Double] = {
-      val max = LocateMax.locateMax(profile)
-      val mean = profile.sum / profile.size
-      val sd = ImageUtil.stdDev(profile)
-      val stdDevOfMax = (max - mean).abs / sd
-      if (stdDevOfMax < minStdDev)
-        None
-      else
-        Some(max)
-    }
-
-    val posn = Seq(
-      locateAndValidate(xPlaneProfile),
-      locateAndValidate(yPlaneProfile),
-      locateAndValidate(zPlaneProfile))
-
-    val flat = posn.flatten
-    if (flat.size == 3)
-      Some(new Point3d(flat(0), flat(1), flat(2)))
-    else
-      None
+    new Profile(prof)
   }
+
+  /** Get the sum of all planes perpendicular to the Y axis */
+  def yPlaneProfile = {
+    val prof = (0 until ySize).map(y => {
+      val yView = for (x <- 0 until xSize; z <- 0 until zSize) yield (getXYZ(x, y, z))
+      yView.sum
+    })
+    new Profile(prof)
+  }
+
+  /** Get the sum of all planes perpendicular to the Z axis */
+  def zPlaneProfile = new Profile(volume.map(img => img.rowSums.sum))
+
+  //  /**
+  //   * Get the point of the volume that is the center of the highest pixel intensity.  This is done by getting
+  //   * the profile in each of the three axis and finding the maximum point on the cubic spline curve.  Result
+  //   * is in units of voxels.
+  //   *
+  //   * If the standard deviation in any of the 3 dimensions is below the given minimum standard deviation, then
+  //   * return None, indicating that the maximum point found was not sufficiently distinguishable from
+  //   * noise to qualify as an object.
+  //   */
+  //  def getMaxPoint(minStdDev: Double): Option[Point3d] = {
+  //
+  //    /**
+  //     * Find the max point and verify that it is sufficiently large (as
+  //     * opposed to just background noise).
+  //     */
+  //    def locateAndValidate(profile: Seq[Float]): Option[Double] = {
+  //      val maxX = LocateMax.locateMax(profile)
+  //      val spline = LocateMax.toCubicSpline(profile)
+  //      val maxY = spline.evaluate(maxX)
+  //
+  //      val mean = profile.sum / profile.size
+  //      val sd = ImageUtil.stdDev(profile)
+  //      val stdDevOfMax = (maxY - mean).abs / sd
+  //      if (stdDevOfMax < minStdDev)
+  //        None
+  //      else
+  //        Some(maxX)
+  //    }
+  //
+  //    val posn = Seq(
+  //      locateAndValidate(xPlaneProfile),
+  //      locateAndValidate(yPlaneProfile),
+  //      locateAndValidate(zPlaneProfile))
+  //
+  //    val flat = posn.flatten
+  //    if (flat.size == 3)
+  //      Some(new Point3d(flat(0), flat(1), flat(2)))
+  //    else
+  //      None
+  //  }
 
 }
 

@@ -1,14 +1,19 @@
 package edu.umro.ImageUtil.test;
 
 import com.pixelmed.dicom.AttributeList
+
 import java.io.File
 import edu.umro.ImageUtil.DicomImage
+
 import java.awt.Rectangle
 import com.pixelmed.dicom.TagFromName
+import edu.umro.DicomDict.TagByName
+
 import java.awt.geom.Point2D
 import javax.imageio.ImageIO
 import edu.umro.util.Utility
 import edu.umro.ImageUtil.ImageUtil
+
 import java.awt.Color
 
 /**
@@ -38,7 +43,7 @@ object TestDicomImage_getMaxPoint2 {
      * Cut a square rectangle out of the middle of the image twice the size of the searchRadius_mm
      */
     def cutRect(al: AttributeList): Rectangle = {
-      val pixSpace = al.get(TagFromName.ImagePlanePixelSpacing).getDoubleValues
+      val pixSpace = al.get(TagByName.ImagePlanePixelSpacing).getDoubleValues
       val x_mm = pixSpace(0)
       val y_mm = pixSpace(1)
       val rows = al.get(TagFromName.Rows).getIntegerValues.head
@@ -109,7 +114,7 @@ object TestDicomImage_getMaxPoint2 {
       val al = readToAl(file)
       val wholeImage = new DicomImage(al)
 
-      val pixSpace = al.get(TagFromName.ImagePlanePixelSpacing).getDoubleValues
+      val pixSpace = al.get(TagByName.ImagePlanePixelSpacing).getDoubleValues
       val x_mm = pixSpace(0)
       val y_mm = pixSpace(1)
       val xSizeBB = ((bbRadius_mm * 2) / x_mm).round.toInt

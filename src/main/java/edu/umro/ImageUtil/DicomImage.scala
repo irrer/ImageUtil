@@ -47,7 +47,6 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     try pixelData(y)(x)
     catch {
       case t: Throwable => {
-        println("x: " + x + "    y: " + y)
         0.toFloat
       }
     }
@@ -709,6 +708,13 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     val text = header + (0 until height).map(y => makeRow(y)).mkString
 
     text
+  }
+
+  /**
+   * Create a new pixel array with the pixels processed with the given transform.
+   */
+  def transform(trans: Float => Float): IndexedSeq[IndexedSeq[Float]] = {
+    pixelData.map(row => row.map(pixel => trans(pixel)))
   }
 
 }
