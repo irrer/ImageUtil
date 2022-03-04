@@ -657,6 +657,16 @@ object DicomImage {
 
   case class HistPoint(value: Float, count: Int) {}
 
+  /**
+    * Add multiple histograms into a single histogram.
+    * @param seq List of histograms.
+    * @return Sum of all inputs.
+    */
+  def histogramSum(seq: Iterable[Iterable[HistPoint]]): Seq[HistPoint] = {
+    val all = seq.flatten.groupBy(_.value).map(g => HistPoint(g._1, g._2.map(_.count).sum)).filter(_.count > 0).toSeq.sortBy(_.value)
+    all
+  }
+
   //  case class BadPixelSet(list: Seq[PixelRating], minBound: Float, maxBound: Float);
 
   def getPixelData(attributeList: AttributeList): IndexedSeq[IndexedSeq[Float]] = {
