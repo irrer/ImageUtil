@@ -16,14 +16,12 @@
 
 package learn
 
-import java.io.File
 import com.pixelmed.dicom.AttributeList
 import edu.umro.ImageUtil.DicomImage
-import java.awt.Color
-import javax.imageio.ImageIO
-import edu.umro.ImageUtil.ImageUtil
-import java.awt.Rectangle
 import org.opensourcephysics.numerics.CubicSpline
+
+import java.awt.Rectangle
+import java.io.File
 
 object LocateEdgeImageDoc {
 
@@ -55,13 +53,13 @@ object LocateEdgeImageDoc {
 
     val cubicSpline = new CubicSpline(profile.indices.toArray.map(i => i.toDouble), profile)
 
-    def toGraph(x: Int) = {
+    def makeGraph(x: Int): Unit = {
       val g2 = granularity / 2
       val i = ((x - g2) / granularity) * granularity
       println(x + "," + profile(i) + "," + cubicSpline.evaluate(x))
     }
 
-    (0 to (profile.size)).map(x => toGraph(x))
+    (0 to profile.length).foreach(x => makeGraph(x))
 
   }
 

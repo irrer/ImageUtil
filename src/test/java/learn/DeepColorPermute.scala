@@ -16,18 +16,12 @@
 
 package learn
 
-import java.io.File
 import com.pixelmed.dicom.AttributeList
 import edu.umro.ImageUtil.DicomImage
-import java.awt.image.BufferedImage
-import javax.swing.JFrame
-import java.awt.FlowLayout
-import javax.swing.ImageIcon
-import javax.swing.JLabel
-import java.awt.image.RenderedImage
-import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream
+
+import java.awt.image.{BufferedImage, RenderedImage}
+import java.io.{ByteArrayOutputStream, File, FileOutputStream}
 import javax.imageio.ImageIO
-import java.io.FileOutputStream
 
 object DeepColorPermute {
 
@@ -38,47 +32,31 @@ object DeepColorPermute {
   }
 
   case class Shifty(name: String, red: Int, green: Int, blue: Int) {
-    def fmt(i: Int) = i.formatted("_%02d")
-    val fullName = name + fmt(red) + fmt(green) + fmt(blue)
+    def fmt(i: Int): String = i.formatted("_%02d")
+    val fullName: String = name + fmt(red) + fmt(green) + fmt(blue)
   }
 
-  private val shiftPermutationList = Seq(
-    new Shifty("A", 16, 8, 0),
-    new Shifty("B", 16, 0, 8),
-    new Shifty("C", 8, 16, 0),
-    new Shifty("D", 8, 0, 16),
-    new Shifty("E", 0, 16, 8),
-    new Shifty("F", 0, 8, 16))
-
-  private def showBufImg(bufImg: BufferedImage) = {
-    val frame = new JFrame
-    frame.getContentPane.setLayout(new FlowLayout);
-    frame.getContentPane.add(new JLabel(new ImageIcon(bufImg)))
-    frame.pack
-    frame.setVisible(true)
-    Thread.sleep(5000)
-  }
-
-  def writeBinaryFile(file: File, data: Array[Byte]): Unit = (writeBinaryFile _).synchronized({
-    val fos = new FileOutputStream(file)
-    fos.write(data)
-    fos.flush
-    fos.close
-  })
+  def writeBinaryFile(file: File, data: Array[Byte]): Unit =
+    (writeBinaryFile _).synchronized({
+      val fos = new FileOutputStream(file)
+      fos.write(data)
+      fos.flush()
+      fos.close()
+    })
 
   def writePng(im: RenderedImage, pngFile: File): Unit = {
     pngFile.delete
-    val stream = new ByteOutputStream
+    val stream = new ByteArrayOutputStream
     ImageIO.write(im, "png", stream)
-    writeBinaryFile(pngFile, stream.getBytes)
+    writeBinaryFile(pngFile, stream.toByteArray)
   }
 
   var minLevel = 100000
-  var maxLevel = -1
+  var maxLevel: Int = -1
 
   /**
-   * Create a buffered image of this DICOM image using multiple colors to give a deeper color depth of 1276 than the standard 256.
-   */
+    * Create a buffered image of this DICOM image using multiple colors to give a deeper color depth of 1276 than the standard 256.
+    */
   def toDeepColor(image: DicomImage, shift: Shifty): BufferedImage = {
 
     val minimum = image.minPixelValue
@@ -90,16 +68,17 @@ object DeepColorPermute {
     println("toDeepColor minimum: " + minimum)
     println("toDeepColor maximum: " + maximum)
     println("toDeepColor range: " + range)
+
     /**
-     * Given a pixel value, return an RGB color
-     */
+      * Given a pixel value, return an RGB color
+      */
     def p2Color(pixel: Float): Int = {
 
       val scaledPixel = {
         val p = pixel match {
           case _ if pixel < minimum => minimum
           case _ if pixel > maximum => maximum
-          case _ => pixel
+          case _                    => pixel
         }
         (p - minimum) / range
       }
@@ -126,12 +105,12 @@ object DeepColorPermute {
     }
 
     val bufImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
-    for (row <- (0 until height); col <- (0 until width)) bufImage.setRGB(col, row, p2Color(image.get(row, col)))
+    for (row <- 0 until height; col <- 0 until width) bufImage.setRGB(col, row, p2Color(image.get(row, col)))
 
     bufImage
   }
 
-  val pixMap = FindDeepColorList.findDeepColor
+  val pixMap: List[Int] = FindDeepColorList.findDeepColor
   println("pixMap size: " + pixMap.size)
 
   def toDeepColor2(image: DicomImage): BufferedImage = {
@@ -145,15 +124,15 @@ object DeepColorPermute {
     val size = pixMap.size - 1
 
     /**
-     * Given a pixel value, return an RGB color
-     */
+      * Given a pixel value, return an RGB color
+      */
     def p2RGB(pixel: Float): Int = {
       val scaledPixel = (((pixel - minimum) / range) * size).floor.toInt
       pixMap(scaledPixel)
     }
 
     val bufImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
-    for (row <- (0 until height); col <- (0 until width)) bufImage.setRGB(col, row, p2RGB(image.get(row, col)))
+    for (row <- 0 until height; col <- 0 until width) bufImage.setRGB(col, row, p2RGB(image.get(row, col)))
 
     bufImage
   }
@@ -167,22 +146,11 @@ object DeepColorPermute {
   private val dirName = """D:\tmp\aqa\colorTest\png"""
   def dir = new File(dirName)
 
-  private def imagesToPng(correctedList: Seq[DicomImage], shift: Shifty): Unit = {
-    def makePng(i: Int) = {
-      val name = shift.fullName + "-" + (i + 1) + ".png"
-      val pngFile = new File(dir, name)
-      val bufImg = toDeepColor(correctedList(i), shift)
-      writePng(bufImg, pngFile)
-      println("wrote file " + pngFile)
-    }
-    correctedList.indices.map(i => makePng(i))
-  }
-
   /**
-   * Correct bad pixels several times to get an average performance.
-   */
-  private def timeBadPixelCorrection(alList: Seq[AttributeList]) = {
-    for (i <- (0 to 5)) {
+    * Correct bad pixels several times to get an average performance.
+    */
+  private def timeBadPixelCorrection(alList: Seq[AttributeList]): Unit = {
+    for (_ <- 0 to 5) {
       val st = System.currentTimeMillis
       alList.map(al => alToCorrected(al))
       val el = System.currentTimeMillis - st
@@ -190,8 +158,8 @@ object DeepColorPermute {
     }
   }
 
-  private def timeDeepColorRendering(list: Seq[DicomImage]) = {
-    for (i <- (0 to 5)) {
+  private def timeDeepColorRendering(list: Seq[DicomImage]): Unit = {
+    for (_ <- 0 to 5) {
       val st = System.currentTimeMillis
       list.map(di => di.toDeepColorBufferedImage(0.2))
       val el = System.currentTimeMillis - st
@@ -199,8 +167,8 @@ object DeepColorPermute {
     }
   }
 
-  private def timeDeepColor2Rendering(list: Seq[DicomImage]) = {
-    for (i <- (0 to 5)) {
+  private def timeDeepColor2Rendering(list: Seq[DicomImage]): Unit = {
+    for (_ <- 0 to 5) {
       val st = System.currentTimeMillis
       list.map(di => toDeepColor2(di))
       val el = System.currentTimeMillis - st
@@ -208,21 +176,20 @@ object DeepColorPermute {
     }
   }
 
-  private def imagesToPng2(correctedList: Seq[DicomImage]): Unit = {
-    def makePng(i: Int) = {
-      val name = "H-" + (i + 1) + ".png"
-      val pngFile = new File(dir, name)
-      val bufImg = toDeepColor2(correctedList(i))
-      writePng(bufImg, pngFile)
-      println("wrote file " + pngFile)
-    }
-    correctedList.indices.map(i => makePng(i))
-  }
-
   def main(args: Array[String]): Unit = {
 
+    if (true) {
+      val al = new AttributeList
+      al.read(new File("src/test/resources/TestFindWorstPixels/TestFindWorstPixels0.dcm"))
+      val di = new DicomImage(al)
+      val img = di.toDeepColorBufferedImage(0.01)
+      writePng(img, new File("""D:\tmp\foo.png"""))
+      println("Exiting ...")
+      System.exit(0)
+    }
+
     val start = System.currentTimeMillis
-    val alList = (new File("""D:\tmp\aqa\colorTest""")).listFiles.filter(f => f.getName.toLowerCase.endsWith(".dcm")).map(f => readDicom(f)).toList
+    val alList = new File("""D:\tmp\aqa\colorTest""").listFiles.filter(f => f.getName.toLowerCase.endsWith(".dcm")).map(f => readDicom(f)).toList
 
     //    dir.mkdirs
     //    dir.listFiles.map(f => f.delete)
@@ -236,7 +203,7 @@ object DeepColorPermute {
       System.exit(0)
     }
 
-    val correctedList = alList.par.  map(al => alToCorrected(al)).toList
+    val correctedList = alList.par.map(al => alToCorrected(al)).toList
     println("Corrections complete.  Elapsed ms: " + (System.currentTimeMillis - start))
 
     if (true) {

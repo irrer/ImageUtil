@@ -250,7 +250,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     /**
       * Given a bad pixel, determine how many (multiples of) standard deviation it is from its neighbors.
       */
-    def stdDev(bp: DicomImage.PixelRating, radius: Int): DicomImage.PixelRating = {
+    def stdDev(bp: DicomImage.PixelRating): DicomImage.PixelRating = {
       val xs = startAt(bp.x, width)
       val ys = startAt(bp.y, height)
       val pixelValue = get(bp.x, bp.y)
@@ -272,7 +272,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       DicomImage.PixelRating(rating, bp.x, bp.y)
     }
 
-    badList.map(bp => stdDev(bp, radius))
+    badList.map(bp => stdDev(bp))
   }
 
   /**

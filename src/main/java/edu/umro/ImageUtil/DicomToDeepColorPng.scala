@@ -16,21 +16,20 @@
 
 package edu.umro.ImageUtil
 
+import com.pixelmed.dicom.{AttributeList, SOPClass, TagFromName}
+
 import java.io.File
-import com.pixelmed.dicom.AttributeList
-import com.pixelmed.dicom.TagFromName
-import com.pixelmed.dicom.SOPClass
 
 object DicomToDeepColorPng {
 
   /**
-   * Safely get a list of files in a directory.  On failure, return an empty list.
-   */
+    * Safely get a list of files in a directory.  On failure, return an empty list.
+    */
   private def listFiles(dir: File): List[File] = {
     try {
       dir.listFiles.toList
     } catch {
-      case t: Throwable => List[File]()
+      case _: Throwable => List[File]()
     }
   }
 
@@ -38,13 +37,13 @@ object DicomToDeepColorPng {
     if (file.isFile) Seq(file)
     else {
       val fList = listFiles(file)
-      fList.map(f => listRegularFiles(f)).flatten
+      fList.flatMap(f => listRegularFiles(f))
     }
   }
 
   /**
-   * Get the attribute list if this is a DICOM image file, otherwise return None.
-   */
+    * Get the attribute list if this is a DICOM image file, otherwise return None.
+    */
   private def getImageAl(file: File): Option[(File, AttributeList)] = {
     try {
       val al = new AttributeList
@@ -54,7 +53,7 @@ object DicomToDeepColorPng {
       else
         Some(file, al)
     } catch {
-      case t: Throwable => None
+      case _: Throwable => None
     }
   }
 
@@ -80,7 +79,7 @@ object DicomToDeepColorPng {
   }
 
   def main(args: Array[String]): Unit = {
-    val list = args.map(fileName => listRegularFiles(new File(fileName))).flatten.map(file => getImageAl(file)).flatten.filter(fa => isImageStg(fa._2))
+    val list = args.flatMap(fileName => listRegularFiles(new File(fileName))).flatMap(file => getImageAl(file)).filter(fa => isImageStg(fa._2))
     list.map(fd => toPng(fd._1, fd._2))
   }
 }

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>edu.umro</groupId>
     <artifactId>ImageUtil_2.12</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
     <dependencies>
         <dependency> <groupId>pixelmed</groupId>                 <artifactId>pixelmed</artifactId>         <version>20201205</version>                        </dependency>
         <dependency> <groupId>edu.umro</groupId>                 <artifactId>ScalaUtil_2.12</artifactId>   <version>0.0.14</version>                          </dependency>

@@ -16,23 +16,12 @@
 
 package learn
 
-import java.io.File
-import com.pixelmed.dicom.AttributeList
-import edu.umro.ImageUtil.DicomImage
-
-import java.awt.Color
-import javax.imageio.ImageIO
-import edu.umro.ImageUtil.ImageUtil
-
-import java.awt.Rectangle
-import com.pixelmed.dicom.TagFromName
-
-import java.io.FileOutputStream
-import com.pixelmed.dicom.AttributeTag
-import com.pixelmed.dicom.AttributeFactory
+import com.pixelmed.dicom.{AttributeFactory, AttributeList, AttributeTag, TagFromName}
 import edu.umro.DicomDict.TagByName
-import edu.umro.ScalaUtil.DicomUtil
 import edu.umro.ImageUtil.IsoImagePlaneTranslator
+import edu.umro.ScalaUtil.DicomUtil
+
+import java.io.File
 
 object TranslateImageCenter {
 
@@ -48,7 +37,7 @@ object TranslateImageCenter {
 
     def addMult(tag: AttributeTag, valueList: Seq[Double]): Unit = {
       val at = AttributeFactory.newAttribute(tag)
-      valueList.map(value => at.addValue(value))
+      valueList.foreach(value => at.addValue(value))
       al.put(at)
     }
 

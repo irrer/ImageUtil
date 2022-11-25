@@ -16,24 +16,21 @@
 
 package edu.umro.ImageUtil
 
-import java.awt.image.BufferedImage
-import java.awt.Color
-import java.awt.Graphics2D
-import java.awt.RenderingHints
-import java.awt.Point
-import java.awt.geom.Point2D
-import java.security.InvalidParameterException
-import java.awt.BasicStroke
-import java.io.File
-import javax.imageio.ImageIO
 import org.opensourcephysics.numerics.CubicSpline
-import edu.umro.ScalaUtil.Trace
+
+import java.awt.geom.Point2D
+import java.awt.image.BufferedImage
+import java.awt.{BasicStroke, Color, Graphics2D, RenderingHints}
+import java.io.File
+import java.security.InvalidParameterException
+import javax.imageio.ImageIO
+import scala.annotation.tailrec
 
 object ImageUtil {
 
   /**
-   * Get the graphics for the image, setting some preferred defaults.
-   */
+    * Get the graphics for the image, setting some preferred defaults.
+    */
   def getGraphics(bufferedImage: BufferedImage): Graphics2D = {
     val graphics = bufferedImage.getGraphics.asInstanceOf[Graphics2D]
     graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -41,31 +38,32 @@ object ImageUtil {
   }
 
   /**
-   * Get the 0 - 255 brightness of a pixel by averaging the red+green+blue levels.
-   */
+    * Get the 0 - 255 brightness of a pixel by averaging the red+green+blue levels.
+    */
   def brightnessOf(color: Color): Double = (color.getRed + color.getGreen + color.getBlue) / 3.0
 
   /**
-   * Get the 0 - 255 brightness of a pixel by averaging the red+green+blue levels.
-   */
+    * Get the 0 - 255 brightness of a pixel by averaging the red+green+blue levels.
+    */
   def brightnessOf(rgb: Int): Double = brightnessOf(new Color(rgb))
 
   /**
-   * Solid line stroke / style
-   */
+    * Solid line stroke / style
+    */
   val solidLine = new BasicStroke
 
   /**
-   * Set line drawing to solid.
-   */
-  def setSolidLine(graphics: Graphics2D) = graphics.setStroke(solidLine)
+    * Set line drawing to solid.
+    */
+  //noinspection ScalaUnusedSymbol
+  def setSolidLine(graphics: Graphics2D): Unit = graphics.setStroke(solidLine)
 
   /**
-   * Write the given text on the image near the given pixel.  Offset it in X and Y so that it does not obscure the
-   * pixel, and use an offset that will still be inside the image by putting it roughly between the pixel and the
-   * center of the image.
-   */
-  def annotatePixel(bufferedImage: BufferedImage, x: Double, y: Double, text: String, encircle: Boolean) = {
+    * Write the given text on the image near the given pixel.  Offset it in X and Y so that it does not obscure the
+    * pixel, and use an offset that will still be inside the image by putting it roughly between the pixel and the
+    * center of the image.
+    */
+  def annotatePixel(bufferedImage: BufferedImage, x: Double, y: Double, text: String, encircle: Boolean): Unit = {
     val radius = 2.0
     // number of pixels between text and pixel
     val margin = 4 + radius
@@ -102,23 +100,23 @@ object ImageUtil {
   }
 
   /**
-   * Given an image, magnify it by the given factor by mapping each <b>1 * 1</b> pixel to a <b>factor * factor</b> pixel.
-   */
+    * Given an image, magnify it by the given factor by mapping each <b>1 * 1</b> pixel to a <b>factor * factor</b> pixel.
+    */
   def magnify(original: BufferedImage, factor: Int): BufferedImage = {
     if (factor < 1) throw new InvalidParameterException("magnification factor must be 1 or greater.  Caller specified: " + factor)
     val magnified = new BufferedImage(original.getWidth * factor, original.getHeight * factor, original.getType)
-    for (x <- (0 until original.getWidth); y <- (0 until original.getHeight)) {
+    for (x <- 0 until original.getWidth; y <- 0 until original.getHeight) {
       val rgb = original.getRGB(x, y)
-      for (xm <- (0 until factor); ym <- (0 until factor)) magnified.setRGB(x * factor + xm, y * factor + ym, rgb)
+      for (xm <- 0 until factor; ym <- 0 until factor) magnified.setRGB(x * factor + xm, y * factor + ym, rgb)
     }
     magnified
   }
 
   /**
-   * Given an image, mirror it vertically.  Pixels on the top will be on the bottom, and
-   * vice-versa.  Pixels on the left will stay on the left.  Pixels on the right will
-   * stay on the right.
-   */
+    * Given an image, mirror it vertically.  Pixels on the top will be on the bottom, and
+    * vice-versa.  Pixels on the left will stay on the left.  Pixels on the right will
+    * stay on the right.
+    */
   def mirrorVertically(original: BufferedImage): BufferedImage = {
     val width = original.getWidth
     val height = original.getHeight
@@ -130,10 +128,10 @@ object ImageUtil {
   }
 
   /**
-   * Given an image, mirror it horizontally.  Pixels on the left will be on the right, and
-   * vice-versa.  Pixels on the top will stay on the top.  Pixels on the bottom will
-   * stay on the bottom.
-   */
+    * Given an image, mirror it horizontally.  Pixels on the left will be on the right, and
+    * vice-versa.  Pixels on the top will stay on the top.  Pixels on the bottom will
+    * stay on the bottom.
+    */
   def mirrorHorizontally(original: BufferedImage): BufferedImage = {
     val width = original.getWidth
     val height = original.getHeight
@@ -146,8 +144,8 @@ object ImageUtil {
   }
 
   /**
-   * Given an image, rotate it clockwise by 90 degrees.
-   */
+    * Given an image, rotate it clockwise by 90 degrees.
+    */
   def rotate90(original: BufferedImage): BufferedImage = {
     val rotated = new BufferedImage(original.getHeight, original.getWidth, original.getType)
     val origWidth = original.getWidth
@@ -159,22 +157,22 @@ object ImageUtil {
   }
 
   /**
-   * Given an image, rotate it clockwise by 180 degrees.
-   */
+    * Given an image, rotate it clockwise by 180 degrees.
+    */
   def rotate180(original: BufferedImage): BufferedImage = {
     rotate90(rotate90(original))
   }
 
   /**
-   * Given an image, rotate it clockwise by 270 degrees.
-   */
+    * Given an image, rotate it clockwise by 270 degrees.
+    */
   def rotate270(original: BufferedImage): BufferedImage = {
     rotate90(rotate180(original))
   }
 
   /**
-   * Find the center of mass of a set of points, indexed starting from 0.
-   */
+    * Find the center of mass of a set of points, indexed starting from 0.
+    */
   def centerOfMass(massList: IndexedSeq[Float]): Float = {
     if (massList.isEmpty)
       0.toFloat
@@ -186,8 +184,8 @@ object ImageUtil {
   }
 
   /**
-   * Given a color, map values 0 to 255 (color depth) from black (0) to <code>color</code>.
-   */
+    * Given a color, map values 0 to 255 (color depth) from black (0) to <code>color</code>.
+    */
   def rgbColorMap(color: Color): IndexedSeq[Int] = {
     val red = color.getRed
     val green = color.getGreen
@@ -197,9 +195,9 @@ object ImageUtil {
 
       def toColor(c: Int, i: Int, shift: Int) = {
         val lev = (c * (i / 256.0)).round.toInt match {
-          case _ if (i < 0) => 0
-          case _ if (i > 255) => 255
-          case i => i
+          case _ if i < 0   => 0
+          case _ if i > 255 => 255
+          case i            => i
         }
         lev << shift
       }
@@ -211,11 +209,12 @@ object ImageUtil {
   }
 
   /**
-   * Make the color map brighter or dimmer by multiplying colors by the given factor.  If
-   * the factor is greater than one it will make the map brighter, less than
-   * one will make it dimmer.  Negative numbers will make it all black.  A factor of 255 or
-   * greater will keep black pixels black and change all others to maximum brightness.
-   */
+    * Make the color map brighter or dimmer by multiplying colors by the given factor.  If
+    * the factor is greater than one it will make the map brighter, less than
+    * one will make it dimmer.  Negative numbers will make it all black.  A factor of 255 or
+    * greater will keep black pixels black and change all others to maximum brightness.
+    */
+  //noinspection ScalaUnusedSymbol
   def adjustBrightness(factor: Double, colorMap: IndexedSeq[Int]): IndexedSeq[Int] = {
     def adj(c: Int): Int = Math.max(0, Math.min((c * factor).round.toInt, 255))
 
@@ -228,8 +227,9 @@ object ImageUtil {
   }
 
   /**
-   * Set the minimum pixel brightness.
-   */
+    * Set the minimum pixel brightness.
+    */
+  //noinspection ScalaUnusedSymbol
   def setColorMapFloor(min: Int, colorMap: IndexedSeq[Int]): IndexedSeq[Int] = {
 
     def brightness(clr: Int): Int = {
@@ -237,7 +237,7 @@ object ImageUtil {
       ((c.getRed + c.getGreen + c.getBlue) / 3.0).floor.toInt
     }
 
-    def minColor = colorMap.sortBy(c => (brightness(c) - min).abs).head
+    def minColor = colorMap.minBy(c => (brightness(c) - min).abs)
 
     def adjust(clr: Int): Int = {
       if (brightness(clr) < min) minColor else clr
@@ -246,32 +246,29 @@ object ImageUtil {
   }
 
   /**
-   * Given a range, return a list of major graticule positions within that
-   * range that will make a user friendly display.
-   *
-   * @param min: Minimum value of range to be displayed
-   *
-   * @param max: Maximum value of range to be displayed
-   *
-   * @param maxCount: Maximum number of graticules to be returned.  Must be greater than 0.
-   */
+    * Given a range, return a list of major graticule positions within that
+    * range that will make a user friendly display.
+    *
+    * @param min: Minimum value of range to be displayed
+    *
+    * @param max: Maximum value of range to be displayed
+    *
+    * @param maxCount: Maximum number of graticules to be returned.  Must be greater than 0.
+    */
   def graticule(min: Double, max: Double, maxCount: Int): Seq[Double] = {
     val range = (max - min).abs
     val majorCandidates: Seq[Double] = Seq(1, 5, 10, 20, 25)
     val multiple = Math.pow(10.0, Math.log10(range).floor - 2)
 
+    @tailrec
     def getIncrement(mult: Double): Double = {
       def works(grat: Double): Boolean = {
         maxCount >= (range / grat)
       }
       majorCandidates.map(c => c * mult).find(c => works(c)) match {
         case Some(c) => c
-        case _ => getIncrement(mult * 10)
+        case _       => getIncrement(mult * 10)
       }
-    }
-
-    def modulo(x: Double, mod: Double): Double = {
-      if (x < 0) -((-x) % mod) else x % mod
     }
 
     val increment = getIncrement(multiple)
@@ -281,55 +278,56 @@ object ImageUtil {
 
     val begin = ((lo - (lo % increment)) / increment).round.toInt
     val end = ((hi - (hi % increment)) / increment).round.toInt
-    val gratList = for (g <- (begin - 2) to (end + 2); if ((g * increment) >= lo) && ((g * increment) <= hi)) yield (g * increment)
+    val gratList = for (g <- (begin - 2) to (end + 2); if ((g * increment) >= lo) && ((g * increment) <= hi)) yield g * increment
     if (min < max) gratList else gratList.reverse
   }
 
   /**
-   * Write a buffered image as a PNG file.
-   */
-  def writePngFile(image: BufferedImage, file: File) = ImageIO.write(image, "png", file)
+    * Write a buffered image as a PNG file.
+    */
+  def writePngFile(image: BufferedImage, file: File): Boolean = ImageIO.write(image, "png", file)
 
   /**
-   * Find the maximum point in a profile by fitting a cubic spline over it and then searching.  It is
-   * assumed that the profile has exactly one local maximum.  (ie: one hump, not multiple).
-   *
-   * @param x: List of X positions of data.  Each value must be unique.
-   *
-   * @param y: List of Y values corresponding to X values.  The profile of these values is examined.
-   */
+    * Find the maximum point in a profile by fitting a cubic spline over it and then searching.  It is
+    * assumed that the profile has exactly one local maximum.  (ie: one hump, not multiple).
+    *
+    * @param xList: List of X positions of data.  Each value must be unique.
+    *
+    * @param yList: List of Y values corresponding to X values.  The profile of these values is examined.
+    */
   def profileMaxCubic(xList: Array[Double], yList: Array[Double]): Double = {
     val cubic = new CubicSpline(xList, yList)
     val maxIteration = 20
     val divs = 5
     case class Pt(x: Double) {
-      lazy val y = cubic.evaluate(x)
+      lazy val y: Double = cubic.evaluate(x)
     }
 
+    @tailrec
     def search(iter: Int, a: Pt, b: Pt): Double = {
-      if (iter < 1) Seq(a, b).sortBy(_.y).last.x
+      if (iter < 1) Seq(a, b).maxBy(_.y).x
       else {
         val incr = (a.x - b.x).abs / divs
         val minX = Math.min(a.x, b.x)
-        val between = (1 until divs).map(i => new Pt(minX + (i * incr)))
+        val between = (1 until divs).map(i => Pt(minX + (i * incr)))
         val all = (Seq(a, b) ++ between).sortBy(_.x)
         val best = all.maxBy(pt => pt.y)
-        search(iter - 1, new Pt(best.x - incr), new Pt(best.x + incr))
+        search(iter - 1, Pt(best.x - incr), Pt(best.x + incr))
       }
     }
 
     val minX = xList.min
     val maxX = xList.max
-    val ext = (maxX - minX) / xList.size
+    val ext = (maxX - minX) / xList.length
 
     val loX = minX - ext
     val hiX = maxX + ext
-    search(maxIteration, new Pt(loX), new Pt(hiX))
+    search(maxIteration, Pt(loX), Pt(hiX))
   }
 
   /**
-   * Calculate standard deviation.
-   */
+    * Calculate standard deviation.
+    */
   def stdDev(list: Seq[Float]): Double = {
     val mean = list.sum / list.size
     val sumSq = list.map(d => (d - mean) * (d - mean)).sum
@@ -339,11 +337,25 @@ object ImageUtil {
   }
 
   /**
-   * Set the graphics line thickness.
-   */
-  def setLineThickness(graphics: Graphics2D, lineThickness: Double) = {
+    * Set the graphics line thickness.
+    */
+  //noinspection ScalaUnusedSymbol
+  def setLineThickness(graphics: Graphics2D, lineThickness: Double): Unit = {
     graphics.setStroke(new BasicStroke(lineThickness.toFloat))
 
+  }
+
+  /**
+    * Clone a buffered image.
+    * @param bi Original.
+    * @return Copy of original.
+    */
+  //noinspection ScalaUnusedSymbol
+  def deepCopy(bi: BufferedImage): BufferedImage = {
+    val cm = bi.getColorModel
+    val isAlphaPreMultiplied = cm.isAlphaPremultiplied
+    val raster = bi.copyData(bi.getRaster.createCompatibleWritableRaster())
+    new BufferedImage(cm, raster, isAlphaPreMultiplied, null)
   }
 
 }

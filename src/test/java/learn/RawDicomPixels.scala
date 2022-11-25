@@ -16,13 +16,10 @@
 
 package learn
 
-import java.io.File
 import com.pixelmed.dicom.AttributeList
 import edu.umro.ImageUtil.DicomImage
-import java.awt.Color
-import javax.imageio.ImageIO
-import edu.umro.ImageUtil.ImageUtil
-import java.awt.Rectangle
+
+import java.io.File
 
 object RawDicomPixels {
 
@@ -35,7 +32,7 @@ object RawDicomPixels {
     al
   }
 
-  private def center(al: AttributeList, name: String) {
+  private def center(al: AttributeList, name: String): Unit = {
     val img = new DicomImage(al)
     val cx = img.width / 2
     val cy = img.height / 2

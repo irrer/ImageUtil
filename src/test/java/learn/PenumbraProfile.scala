@@ -16,39 +16,38 @@
 
 package learn
 
-import java.io.File
 import com.pixelmed.dicom.AttributeList
-import edu.umro.ImageUtil.DicomImage
-import java.awt.Color
+import edu.umro.ImageUtil.{DicomImage, ImageUtil}
+
+import java.awt.{Color, Rectangle}
+import java.io.File
 import javax.imageio.ImageIO
-import edu.umro.ImageUtil.ImageUtil
-import java.awt.Rectangle
 
 object PenumbraProfile {
 
-  def showPenumbrProfile = {
+  def showPenumbrProfile(): Unit = {
     val file = new File("""D:\tmp\aqa\Phase2\AQA-master\RI.$JM_AQA_phase2_v000.MV_0_0a.dcm""")
     val al = new AttributeList
     al.read(file)
     val image = new DicomImage(al)
 
-    def horizontal = {
+    def horizontal(): Unit = {
       val y = image.height / 2
-      for (x <- (0 until image.width)) println(image.get(x, y))
+      for (x <- 0 until image.width) println(image.get(x, y))
     }
 
-    def vertical = {
+    def vertical(): Unit = {
       val x = image.width / 2
-      for (y <- (0 until image.height)) println(image.get(x, y))
+      for (y <- 0 until image.height) println(image.get(x, y))
     }
 
-    horizontal
+    horizontal()
     println("\n\n------------------------------------------------\n\n")
-    vertical
+    vertical()
 
   }
 
-  private def showBadPixel(bad: DicomImage.PixelRating, image: DicomImage) = {
+  private def showBadPixel(bad: DicomImage.PixelRating, image: DicomImage): Unit = {
     val sub = image.getSubimage(new Rectangle(bad.x - 2, bad.y - 2, 5, 5))
     println("        " + bad)
     for (y <- 0 until 5) {
@@ -58,7 +57,7 @@ object PenumbraProfile {
     }
   }
 
-  def dumpFile(file: File) {
+  def dumpFile(file: File): Unit = {
     try {
       val al = new AttributeList
       al.read(file)
@@ -66,14 +65,14 @@ object PenumbraProfile {
         val image = new DicomImage(al)
         val badPixelList = image.identifyBadPixels(100, 1.0, 10.0, 5, 10.0)
         println("File " + file + " Number of bad pixels: " + badPixelList.size)
-        badPixelList.map(bad => showBadPixel(bad, image))
+        badPixelList.foreach(bad => showBadPixel(bad, image))
         val bufImage = if (true) {
           val goodImage = image.correctBadPixels(badPixelList, 5)
           goodImage.toBufferedImage(Color.green)
         } else {
           image.toBufferedImage(Color.green)
         }
-        badPixelList.map(w => ImageUtil.annotatePixel(bufImage, w.x, w.y, w.x + ", " + w.y, true))
+        badPixelList.foreach(w => ImageUtil.annotatePixel(bufImage, w.x, w.y, w.x + ", " + w.y, encircle = true))
         val imageFileName = file.getName.replaceAll(".dcm$", ".png").replaceAll(".DCM$", ".png")
         val imageFile = new File(file.getParentFile, imageFileName)
         imageFile.delete
@@ -81,11 +80,11 @@ object PenumbraProfile {
         println("Wrote file " + imageFile)
       } else println("Ignoring file " + file)
     } catch {
-      case t: Throwable => println("Error.  Ignoring file " + file)
+      case _: Throwable => println("Error.  Ignoring file " + file)
     }
   }
 
-  def dumpDir(dir: File) = {
+  def dumpDir(dir: File): Array[Unit] = {
     dir.listFiles.map(f => dumpFile(f))
   }
 

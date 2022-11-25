@@ -16,15 +16,12 @@
 
 package learn
 
-import java.io.File
-import com.pixelmed.dicom.AttributeList
+import com.pixelmed.dicom.{AttributeList, TagFromName}
 import edu.umro.ImageUtil.DicomImage
-import java.awt.Color
-import javax.imageio.ImageIO
-import edu.umro.ImageUtil.ImageUtil
+
 import java.awt.Rectangle
-import com.pixelmed.dicom.TagFromName
-import java.io.FileOutputStream
+import java.io.{File, FileOutputStream}
+import javax.imageio.ImageIO
 
 object ChopBlock {
 
@@ -38,24 +35,14 @@ object ChopBlock {
     al
   }
 
-  private def center(al: AttributeList, name: String) {
-    val img = new DicomImage(al)
-    val cx = img.width / 2
-    val cy = img.height / 2
-    println("name: " + name)
-    for (x <- (cx - 2) until (cx + 2); y <- (cy - 2) until (cy + 2)) yield {
-      println("    x,y: " + x + ", " + y + " : " + img.get(x, y))
-    }
-  }
-
   def getPosn(al: AttributeList): Double = al.get(TagFromName.ImagePositionPatient).getDoubleValues()(2)
 
   val range = 30.0 // range in mm from center
 
-  def showPix(di: DicomImage) = {
+  def showPix(di: DicomImage): Unit = {
     println
-    for (y <- (0 until di.height)) {
-      for (x <- (0 until di.width)) {
+    for (y <- 0 until di.height) {
+      for (x <- 0 until di.width) {
         print(di.get(x, y).toInt.formatted("%4d  "))
       }
       println
@@ -77,16 +64,16 @@ object ChopBlock {
       alList.filter(al => (getPosn(al) - mid).abs < range)
     }
 
-    println("number of slices: " + centerSlices.size)
+    println("number of slices: " + centerSlices.length)
 
     val pixSpacingX = centerSlices.head.get(TagFromName.PixelSpacing).getDoubleValues()(0)
     val pixSpacingY = centerSlices.head.get(TagFromName.PixelSpacing).getDoubleValues()(1)
 
-    val pixSpanX = (range / pixSpacingX)
-    val pixSpanY = (range / pixSpacingY)
+    val pixSpanX = range / pixSpacingX
+    val pixSpanY = range / pixSpacingY
 
     val rows = centerSlices.head.get(TagFromName.Rows).getIntegerValues()(0)
-    val columns = centerSlices.head.get(TagFromName.Columns).getIntegerValues()(0)
+    // val columns = centerSlices.head.get(TagFromName.Columns).getIntegerValues()(0)
 
     val pixX = ((rows - pixSpanX) / 2.0).round.toInt
     val pixY = ((rows - pixSpanY) / 2.0).round.toInt
@@ -110,7 +97,7 @@ object ChopBlock {
 
     bufImageList.indices.map(i => writePng(i))
 
-    imageList.map(img => showPix(img))
+    imageList.foreach(img => showPix(img))
 
     println("Done.  Files written to " + outDir.getAbsolutePath)
   }

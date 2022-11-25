@@ -15,28 +15,12 @@
  */
 
 package learn
-
-import java.io.File
-import com.pixelmed.dicom.AttributeList
-import edu.umro.ImageUtil.DicomImage
-import java.awt.image.BufferedImage
-import javax.swing.JFrame
-import java.awt.FlowLayout
-import javax.swing.ImageIcon
-import javax.swing.JLabel
-import java.awt.image.RenderedImage
-import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream
-import javax.imageio.ImageIO
-import java.io.FileOutputStream
-import java.awt.Color
+//import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream
 
 object FindDeepColorList {
 
   def rgb2Color(rgb: Int): Seq[Int] = {
-    Seq(
-      (rgb & 0xffffff) >> 16,
-      (rgb & 0xffff) >> 8,
-      (rgb & 0xff))
+    Seq((rgb & 0xffffff) >> 16, (rgb & 0xffff) >> 8, rgb & 0xff)
   }
 
   def rgb2Text(rgb: Int): String = {
@@ -44,12 +28,6 @@ object FindDeepColorList {
   }
 
   def findDeepColor: List[Int] = {
-
-    case class RGBPix(rgb: Int, pix: Int) {
-      override def toString = {
-        pix.formatted("%6d") + " : " + rgb2Text(rgb)
-      }
-    }
 
     val lo = 10000
     val hi = 50000
@@ -81,7 +59,7 @@ object FindDeepColorList {
       color
     }
 
-    val colorList = (lo until hi).map(p => (calcColor(p), p)).toMap.toList.sortWith((a, b) => (a._2 < b._2)).map(cp => cp._1)
+    val colorList = (lo until hi).map(p => (calcColor(p), p)).toMap.toList.sortWith((a, b) => a._2 < b._2).map(cp => cp._1)
     println("colorList.size: " + colorList.size)
     if (true) {
       println("red size: " + colorList.map(c => (c >> 16) & 0xff).distinct.size)
@@ -91,11 +69,13 @@ object FindDeepColorList {
     colorList
   }
 
+  /*
   private def alToCorrected(al: AttributeList): DicomImage = {
     val rawImage = new DicomImage(al)
     val image = rawImage.correctBadPixels(rawImage.identifyBadPixels(400, 2.0, 10.0, 5, 10.0), 5)
     image
   }
+   */
 
   def main(args: Array[String]): Unit = {
 

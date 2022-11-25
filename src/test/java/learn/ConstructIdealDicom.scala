@@ -16,26 +16,15 @@
 
 package learn
 
-import edu.umro.ImageUtil.LocateEdge
-
-import java.io.File
-import com.pixelmed.dicom.AttributeList
-import edu.umro.ImageUtil.DicomImage
+import com.pixelmed.dicom.{AttributeList, TagFromName}
+import edu.umro.DicomDict.TagByName
+import edu.umro.ImageUtil.{DicomImage, ImageUtil, IsoImagePlaneTranslator, LocateEdge}
+import edu.umro.ScalaUtil.DicomUtil
+import edu.umro.util.UMROGUID
+import org.opensourcephysics.numerics.CubicSpline
 
 import java.awt.Rectangle
-import com.pixelmed.dicom.TagFromName
-import edu.umro.DicomDict.TagByName
-import edu.umro.ScalaUtil.DicomUtil
-import org.scalactic.source.Position.apply
-import org.scalatest.Finders
-import edu.umro.util.UMROGUID
-import edu.umro.ImageUtil.ImageUtil
-
-import javax.vecmath.Point2d
-import edu.umro.ImageUtil.IsoImagePlaneTranslator
-import edu.umro.ImageUtil.LocateMax
-import org.opensourcephysics.numerics.CubicSpline
-import edu.umro.ImageUtil.IsoImagePlaneTranslator
+import java.io.File
 
 object ConstructIdealDicom {
 
@@ -44,9 +33,9 @@ object ConstructIdealDicom {
   val outDir = new File("target/TestLocateEdge")
   outDir.mkdirs
 
-  def fmt(d: Double) = d.formatted("%20.15f")
+  def fmt(d: Double): String = d.formatted("%20.15f")
 
-  def readDicomFile(file: File) = {
+  def readDicomFile(file: File): AttributeList = {
     val al = new AttributeList
     al.read(file)
     al
@@ -77,26 +66,27 @@ object ConstructIdealDicom {
   val rightEdge = 680
   val border = 20
   val ballDiam = 35.0
-  val ballRadius = ballDiam / 2
+  val ballRadius: Double = ballDiam / 2
 
-  val ballBackgroundCU = 3380.toShort
-  val ballCenterCU = 2870.toShort
-  val backgroundCU = 2.toShort
+  val ballBackgroundCU: Short = 3380.toShort
+  val ballCenterCU: Short = 2870.toShort
+  val backgroundCU: Short = 2.toShort
 
-  def leftEdgeBoundingRectangle(image: DicomImage) = {
-    val s = 200
-    val midW = image.width / 2
-    val midH = image.height / 2
-    val top = image.getSubimage(new Rectangle(midW - s, midH - border, s * 2, border * 2))
+  def leftEdgeBoundingRectangle(image: DicomImage): Unit = {
+    if (false) println(image)
+    // val s = 200
+    // val midW = image.width / 2
+    // val midH = image.height / 2
+    // val top = image.getSubImage(new Rectangle(midW - s, midH - border, s * 2, border * 2))
   }
 
-  def measureLeftEdge(image: DicomImage) = {
+  def measureLeftEdge(image: DicomImage): Unit = {
     println("----------------------------------------------")
 
-    val s = 200
-    val midW = image.width / 2
-    val midH = image.height / 2
-    val top = image.getSubimage(new Rectangle(midW - s, midH - border, s * 2, border * 2))
+    // val s = 200
+    // val midW = image.width / 2
+    // val midH = image.height / 2
+    // val top = image.getSubImage(new Rectangle(midW - s, midH - border, s * 2, border * 2))
     //println(top.columnSums.mkString("\n    ", "\n    ", ""))
 
     val ht = (bottomEdge - border) - (topEdge + border)
@@ -108,18 +98,18 @@ object ConstructIdealDicom {
     println("Left edge at: " + (x + LocateEdge.locateEdge(colSums, threshold)))
   }
 
-  def horizontalPixelsAcrossCenter(al: AttributeList) = {
+  def horizontalPixelsAcrossCenter(al: AttributeList): Unit = {
     val di = new DicomImage(al)
     val mid = di.Rows / 2
     val text = (0 until di.Columns).map(c => di.get(c, mid).formatted("%6.0f")).mkString("\n    ")
     println(text)
   }
 
-  def showPixelGrid(al: AttributeList, top: Int, bottom: Int, left: Int, right: Int) = {
+  def showPixelGrid(al: AttributeList, top: Int, bottom: Int, left: Int, right: Int): Unit = {
     val di = new DicomImage(al)
     for (y <- top until bottom) {
       for (x <- left until right) {
-        print(di.get(x, y).round.toInt.formatted("%6d"))
+        print(di.get(x, y).round.formatted("%6d"))
       }
       println
     }
@@ -127,22 +117,22 @@ object ConstructIdealDicom {
 
   // -------------------------------------------------------
 
-  def modSop(al: AttributeList) = {
+  def modSop(al: AttributeList): Unit = {
     val at = al.get(TagFromName.SOPInstanceUID)
-    val sop = at.getSingleStringValueOrEmptyString
-    at.removeValues
+    // val sop = at.getSingleStringValueOrEmptyString
+    at.removeValues()
     at.addValue(UMROGUID.getUID)
   }
 
-  def sadTo1000(al: AttributeList) = {
+  def sadTo1000(al: AttributeList): Unit = {
     val RadiationMachineSAD = al.get(TagByName.RadiationMachineSAD)
-    RadiationMachineSAD.removeValues
+    RadiationMachineSAD.removeValues()
     RadiationMachineSAD.addValue(1000.0)
   }
 
-  def sidTo1500(al: AttributeList) = {
+  def sidTo1500(al: AttributeList): Unit = {
     val RTImageSID = al.get(TagByName.RTImageSID)
-    RTImageSID.removeValues
+    RTImageSID.removeValues()
     RTImageSID.addValue(1500.0)
   }
 
@@ -152,20 +142,20 @@ object ConstructIdealDicom {
     sidTo1500(al)
   }
 
-  def setCollAngle(al: AttributeList, collimatorAngle: Double) = {
+  def setCollAngle(al: AttributeList, collimatorAngle: Double): IndexedSeq[Unit] = {
     val list = DicomUtil.findAllSingle(al, TagByName.BeamLimitingDeviceAngle)
 
     list.map(at => {
-      at.removeValues
+      at.removeValues()
       at.addValue(collimatorAngle)
     })
   }
 
-  def setGantryAngle(al: AttributeList, gantryAngle: Double) = {
+  def setGantryAngle(al: AttributeList, gantryAngle: Double): IndexedSeq[Unit] = {
     val list = DicomUtil.findAllSingle(al, TagByName.GantryAngle)
 
     list.map(at => {
-      at.removeValues
+      at.removeValues()
       at.addValue(gantryAngle)
     })
   }
@@ -175,13 +165,13 @@ object ConstructIdealDicom {
     val al = readDicomFile(MSK_WL_G090_C090file)
     idealize(al)
 
-    val width = al.get(TagFromName.Columns).getIntegerValues.head
-    val height = al.get(TagFromName.Rows).getIntegerValues.head
+    // val width = al.get(TagFromName.Columns).getIntegerValues.head
+    // val height = al.get(TagFromName.Rows).getIntegerValues.head
 
     val pixAttr = al.get(TagFromName.PixelData)
     val pixels = pixAttr.getShortValues
 
-    pixels.indices.map(i => pixels(i) = backgroundCU)
+    pixels.indices.foreach(i => pixels(i) = backgroundCU)
 
     al
   }
@@ -224,7 +214,7 @@ object ConstructIdealDicom {
     al
   }
 
-  def centerOfMass(al: AttributeList) = {
+  def centerOfMass(al: AttributeList): String = {
     val di = new DicomImage(al)
     val x = ImageUtil.centerOfMass(di.columnSums)
     val y = ImageUtil.centerOfMass(di.rowSums)
@@ -244,10 +234,8 @@ object ConstructIdealDicom {
         thickness.round.toShort
       } catch {
         case t: Throwable =>
-          {
-            println("got a ballThicknessCU error with radius " + radius + " : " + t)
-            ballBackgroundCU
-          }
+          println("got a ballThicknessCU error with radius " + radius + " : " + t)
+          ballBackgroundCU
       }
     }
   }
@@ -279,13 +267,13 @@ object ConstructIdealDicom {
     al
   }
 
-  def testBallThicknessCU = {
-    for (t <- ((-3) to ballRadius.toInt + 5)) {
+  def testBallThicknessCU(): Unit = {
+    for (t <- (-3) to ballRadius.toInt + 5) {
       println(t.formatted("%4d") + " : " + ballThicknessCU(t).formatted("%5d"))
     }
   }
 
-  def centerOfMass(file: File) = {
+  def centerOfMass(file: File): Unit = {
     val al = readDicomFile(file)
     val di = new DicomImage(al)
     val trans = new IsoImagePlaneTranslator(al)
@@ -300,7 +288,7 @@ object ConstructIdealDicom {
   }
 
   def edgeBySlopes(al: AttributeList, rect: Rectangle): Unit = {
-    val border = 40
+    // val border = 40
     val di = new DicomImage(al)
     val leftRect = di.getSubimage(rect)
     val profile = {
@@ -341,21 +329,21 @@ object ConstructIdealDicom {
       val zoom = 20
       val incr = 1.0 / zoom
       println("slope profile")
-      (1 until (profile.size * zoom)).map(i => toSlope(i, incr)).map(is => println(fmt(is._2)))
+      (1 until (profile.size * zoom)).map(i => toSlope(i, incr)).foreach(is => println(fmt(is._2)))
     }
 
     if (false) {
       val zoom = 20
       val incr = 1.0 / zoom
       println("gradient profile")
-      (1 until (profile.size * zoom)).map(i => spline.evaluate((i * incr) + incr) - spline.evaluate(i * incr)).map(g => println(fmt(g)))
+      (1 until (profile.size * zoom)).map(i => spline.evaluate((i * incr) + incr) - spline.evaluate(i * incr)).foreach(g => println(fmt(g)))
     }
 
-    val bestText = best.map(xy => fmt(xy._1) + ",  " + fmt(xy._2))
+    // val bestText = best.map(xy => fmt(xy._1) + ",  " + fmt(xy._2))
     val lo = best.filter(_._1 < steepestX).head._1
     val hi = best.filter(_._1 > steepestX).head._1
     //println(profile.map(y => fmt(y)).mkString("\n"))
-    val avg = ((lo + hi) / 2)
+    val avg = (lo + hi) / 2
 
     val mid = {
       val loY = spline.evaluate(lo)
@@ -364,10 +352,12 @@ object ConstructIdealDicom {
       points.minBy(m => (spline.evaluate(m._1) - midY).abs)._1
     }
 
-    println("\nsteepestX: " + fmt(steepestX) +
-      "    lo: " + fmt(lo) + "  hi: " + fmt(hi) +
-      "    avg: " + fmt(avg) + " ==> " + fmt(avg + rect.getX) +
-      "    mid: " + fmt(mid) + " ==> " + fmt(mid + rect.getX))
+    println(
+      "\nsteepestX: " + fmt(steepestX) +
+        "    lo: " + fmt(lo) + "  hi: " + fmt(hi) +
+        "    avg: " + fmt(avg) + " ==> " + fmt(avg + rect.getX) +
+        "    mid: " + fmt(mid) + " ==> " + fmt(mid + rect.getX)
+    )
   }
 
   def main(args: Array[String]): Unit = {
@@ -377,10 +367,10 @@ object ConstructIdealDicom {
       val fileList = Seq(MSK_WL_G090_C090file, MSK_WL_G090_C270file)
       val alList = fileList.map(file => readDicomFile(file))
       val imageList = alList.map(al => new DicomImage(al))
-      imageList.map(image => measureLeftEdge(image))
+      imageList.foreach(image => measureLeftEdge(image))
     }
 
-    if (false) testBallThicknessCU
+    if (false) testBallThicknessCU()
 
     if (false) {
       val al = makeIdealAlWithBall
@@ -455,11 +445,7 @@ object ConstructIdealDicom {
     }
 
     if (false) {
-      Seq(
-        MSK_TB444_C270_6Xfile,
-        MSK_TB444_C090_6Xfile,
-        MSK_TB445_C270_6Xfile,
-        MSK_TB445_C090_6Xfile).sortBy(_.getName).map(f => centerOfMass(f))
+      Seq(MSK_TB444_C270_6Xfile, MSK_TB444_C090_6Xfile, MSK_TB445_C270_6Xfile, MSK_TB445_C090_6Xfile).sortBy(_.getName).foreach(f => centerOfMass(f))
     }
 
     if (false) {

@@ -16,18 +16,19 @@
 
 package edu.umro.ImageUtil
 
-import java.awt.geom.Rectangle2D
-import java.awt.image.BufferedImage
 import edu.umro.ScalaUtil.Trace
 
+import java.awt.geom.Rectangle2D
+import java.awt.image.BufferedImage
+
 /**
- * Precisely locate a horizontal or vertical ridge within a given rectangle.  It is assumed that
- * the rectangle contains exactly one ridge.
- */
+  * Precisely locate a horizontal or vertical ridge within a given rectangle.  It is assumed that
+  * the rectangle contains exactly one ridge.
+  */
 object LocateRidge {
 
   case class Pix(index: Int, size: Double, center: Double) {
-    override def toString = "index: " + index + "  size: " + size + "  center: " + center
+    override def toString: String = "index: " + index + "  size: " + size + "  center: " + center
   }
 
   private def pixelSizeList(lo: Double, hi: Double): Seq[Pix] = {
@@ -42,7 +43,7 @@ object LocateRidge {
         else
           index + 1 - (size / 2)
 
-      new Pix(index, size, center)
+      Pix(index, size, center)
     }
 
     val firstPixel = lo.floor.toInt
@@ -55,8 +56,8 @@ object LocateRidge {
   }
 
   /**
-   * precisely locate the center of mass for a vertical ridge by finding the center of mass for each row of pixels and then taking the mean.
-   */
+    * precisely locate the center of mass for a vertical ridge by finding the center of mass for each row of pixels and then taking the mean.
+    */
   private def centerOfMassVert(row: Pix, colList: Seq[Pix], width: Double, array: IndexedSeq[IndexedSeq[Float]]): Double = {
     val totalMassSum = colList.map(col => col.size * array(row.index)(col.index)).sum
     val totalMassAvg = totalMassSum / width
@@ -77,8 +78,8 @@ object LocateRidge {
   }
 
   /**
-   * precisely locate the center of mass for a horizontal ridge by finding the center of mass for each column of pixels and then taking the mean.
-   */
+    * precisely locate the center of mass for a horizontal ridge by finding the center of mass for each column of pixels and then taking the mean.
+    */
   private def centerOfMassHorz(col: Pix, rowList: Seq[Pix], height: Double, array: IndexedSeq[IndexedSeq[Float]]): Double = {
 
     val center =
@@ -107,15 +108,15 @@ object LocateRidge {
   }
 
   /**
-   * Locate the center of a vertical ridge enclosed in the given rectangle.  The algorithm is for each row of
-   * pixels, consider only pixels that are above average value for that row, and then find their center of mass,
-   * which is considered to be the center of that row.  Finally, take the average of the centers of the rows and
-   * return that as the center of the ridge.
-   *
-   * @param array: pixels of image
-   *
-   * @param rectangle: Bounding area of interest.
-   */
+    * Locate the center of a vertical ridge enclosed in the given rectangle.  The algorithm is for each row of
+    * pixels, consider only pixels that are above average value for that row, and then find their center of mass,
+    * which is considered to be the center of that row.  Finally, take the average of the centers of the rows and
+    * return that as the center of the ridge.
+    *
+    * @param array: pixels of image
+    *
+    * @param rectangle: Bounding area of interest.
+    */
   def locateVertical(array: IndexedSeq[IndexedSeq[Float]], rectangle: Rectangle2D.Double): Double = {
     val width = array.head.size
     val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height).filter(pix => (pix.index >= 0) && (pix.index < width))
@@ -127,15 +128,15 @@ object LocateRidge {
   }
 
   /**
-   * Locate the center of a horizontal ridge enclosed in the given rectangle.  The algorithm is for each row of
-   * pixels, consider only pixels that are above average value for that row, and then find their center of mass,
-   * which is considered to be the center of that row.  Finally, take the average of the centers of the rows and
-   * return that as the center of the ridge.
-   *
-   * @param array: pixels of image
-   *
-   * @param rectangle: Bounding area of interest.
-   */
+    * Locate the center of a horizontal ridge enclosed in the given rectangle.  The algorithm is for each row of
+    * pixels, consider only pixels that are above average value for that row, and then find their center of mass,
+    * which is considered to be the center of that row.  Finally, take the average of the centers of the rows and
+    * return that as the center of the ridge.
+    *
+    * @param array: pixels of image
+    *
+    * @param rectangle: Bounding area of interest.
+    */
   def locateHorizontal(array: IndexedSeq[IndexedSeq[Float]], rectangle: Rectangle2D.Double): Double = {
     val height = array.size
     val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height)
@@ -149,13 +150,13 @@ object LocateRidge {
   // ----------------------------------------------------------------------------------------------------------------------------
 
   /**
-   * Hook for testing.
-   */
-  def testPixelSizeList(lo: Double, hi: Double) = pixelSizeList(lo, hi)
+    * Hook for testing.
+    */
+  def testPixelSizeList(lo: Double, hi: Double): Seq[Pix] = pixelSizeList(lo, hi)
 
   /**
-   * Hook for testing.
-   */
+    * Hook for testing.
+    */
   def testZapUnusedPixels(array: IndexedSeq[IndexedSeq[Float]], rectangle: Rectangle2D.Double): BufferedImage = {
     val rowList = pixelSizeList(rectangle.y, rectangle.y + rectangle.height)
     val colList = pixelSizeList(rectangle.x, rectangle.x + rectangle.width)
@@ -170,7 +171,7 @@ object LocateRidge {
     val width = array.head.size
     val height = array.size
     val bufImg = new BufferedImage(width * zoom, height * zoom, BufferedImage.TYPE_INT_RGB)
-    def setPix(x: Int, y: Int, value: Float) = {
+    def setPix(x: Int, y: Int, value: Float): Unit = {
       for (xx <- 0 until zoom; yy <- 0 until zoom) {
         val level = (((value - minPix) / range) * 255).floor.toInt
         val rgb = (level << 16) + (level << 8)
@@ -179,7 +180,7 @@ object LocateRidge {
         try {
           bufImg.setRGB(xxx, yyy, rgb)
         } catch {
-          case t: Throwable => Trace.trace("out of bounds with x,y: " + xxx + ", " + yyy)
+          case _: Throwable => Trace.trace("out of bounds with x,y: " + xxx + ", " + yyy)
         }
       }
     }
@@ -189,16 +190,16 @@ object LocateRidge {
     def zapRow(row: Pix, colList: Seq[Pix], width: Double, array: IndexedSeq[IndexedSeq[Float]]): Unit = {
       val totalMassSum = colList.map(col => row.size * array(row.index)(col.index)).sum
       val totalMassAvg = totalMassSum / width
-      colList.map(col => if (totalMassAvg > array(row.index)(col.index)) setPix(col.index, row.index, minPix))
+      colList.foreach(col => if (totalMassAvg > array(row.index)(col.index)) setPix(col.index, row.index, minPix))
     }
 
-    rowList.map(row => zapRow(row, colList, rectangle.width, array))
+    rowList.foreach(row => zapRow(row, colList, rectangle.width, array))
     bufImg
   }
 
   /**
-   * Hook for testing.
-   */
+    * Hook for testing.
+    */
   def testLocateVerticalBuf(array: IndexedSeq[IndexedSeq[Float]], rectangle: Rectangle2D.Double): BufferedImage = {
 
     val allPix = array.flatten
@@ -211,7 +212,7 @@ object LocateRidge {
     val width = array.head.size
     val height = array.size
     val bufImg = new BufferedImage(width * zoom, height * zoom, BufferedImage.TYPE_INT_RGB)
-    def setPix(x: Int, y: Int, value: Float) = {
+    def setPix(x: Int, y: Int, value: Float): Unit = {
       for (xx <- 0 until zoom; yy <- 0 until zoom) {
         val rgb = (((value - minPix) / range) * 255).floor.toInt
         val xxx = x * zoom + xx
@@ -219,12 +220,12 @@ object LocateRidge {
         try {
           bufImg.setRGB(xxx, yyy, rgb)
         } catch {
-          case t: Throwable => Trace.trace("out of bounds with x,y: " + xxx + ", " + yyy)
+          case _: Throwable => Trace.trace("out of bounds with x,y: " + xxx + ", " + yyy)
         }
       }
     }
 
-    def drawLine(x: Double, y: Int) = {
+    def drawLine(x: Double, y: Int): Unit = {
       val rgb = 0xffff00
       val xx = (x * zoom).round.toInt
       for (yy <- 0 until zoom) {
@@ -232,7 +233,7 @@ object LocateRidge {
         try {
           bufImg.setRGB(xx, yyy, rgb)
         } catch {
-          case t: Throwable => Trace.trace("out of bounds with x,y: " + xx + ", " + yyy)
+          case _: Throwable => Trace.trace("out of bounds with x,y: " + xx + ", " + yyy)
         }
       }
     }
@@ -244,7 +245,7 @@ object LocateRidge {
 
     for (x <- 0 until width; y <- 0 until height) setPix(x, y, array(y)(x))
 
-    rowList.map(row => drawLine(yList(row.index), row.index))
+    rowList.foreach(row => drawLine(yList(row.index), row.index))
 
     bufImg
   }

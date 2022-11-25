@@ -16,25 +16,21 @@
 
 package learn
 
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
-import java.io.File
-import com.pixelmed.dicom.AttributeList
+import com.pixelmed.dicom.{AttributeList, TagFromName}
 import edu.umro.ImageUtil.DicomImage
-import java.awt.Rectangle
-import com.pixelmed.dicom.TagFromName
-import scala.collection.mutable.ArrayBuffer
 import edu.umro.ScalaUtil.DicomUtil
+
+import java.io.File
 
 object ConstructIdealCollimatorCentering {
 
-  def readDicomFile(file: File) = {
+  def readDicomFile(file: File): AttributeList = {
     val al = new AttributeList
     al.read(file)
     al
   }
 
-  def showProfile(file: File) = {
+  def showProfile(file: File): Unit = {
     val al = readDicomFile(file)
     val dicomImage = new DicomImage(al)
 
@@ -51,11 +47,11 @@ object ConstructIdealCollimatorCentering {
   val file270 = new File(dir, "J10G0C270-6X.dcm")
 
   val left = 368
-  val right = 1190 - (left + 1)
-  val top = left
-  val bottom = right
+  val right: Int = 1190 - (left + 1)
+  val top: Int = left
+  val bottom: Int = right
 
-  def idealize(file: File) = {
+  def idealize(file: File): Unit = {
     val al = readDicomFile(file)
 
     val dicomImage = new DicomImage(al)
@@ -89,12 +85,3 @@ object ConstructIdealCollimatorCentering {
   }
 
 }
-
-
-
-
-
-
-
-
-
