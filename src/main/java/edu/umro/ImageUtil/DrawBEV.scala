@@ -57,7 +57,7 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
 
     private case class PosSeq(posSeq: AttributeList) {
       private val devType: String = posSeq.get(TagByName.RTBeamLimitingDeviceType).getSingleStringValueOrNull.trim
-      val posList: Array[Double] = posSeq.get(TagByName.LeafJawPositions).getDoubleValues
+      val posList: Seq[Double] = posSeq.get(TagByName.LeafJawPositions).getDoubleValues.toSeq // toSeq to make this immutable
 
       val isXMlc: Boolean = devType.equals("MLCX")
       val isXJaw: Boolean = devType.equals("ASYMX") || devType.equals("X")
@@ -83,14 +83,24 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
     val y1Jaw: Option[Double] = posSeq.find(_.isYJaw).map(_.posList.head)
     val y2Jaw: Option[Double] = posSeq.find(_.isYJaw).map(_.posList(1))
 
-    val mlcPosList: Seq[Double] = posSeq.find(_.isXMlc) match {
-      case Some(ps) => ps.posList
+    val mlcX1PosList: Seq[Double] = posSeq.find(_.isXMlc) match {
+      case Some(ps) => ps.posList.take(ps.posList.size / 2)
       case _        => Seq()
     }
+
+    def mlcX1Pos(index: Int) = if ((index >= 0) && (index < mlcX1PosList.size)) Some(mlcX1PosList(index)) else None
+
+    val mlcX2PosList: Seq[Double] = posSeq.find(_.isXMlc) match {
+      case Some(ps) => ps.posList.takeRight(ps.posList.size / 2)
+      case _        => Seq()
+    }
+
+    def mlcX2Pos(index: Int) = if ((index >= 0) && (index < mlcX2PosList.size)) Some(mlcX2PosList(index)) else None
+
   }
 
   /** Indicates that there is no leaf adjacent to a leaf side. */
-  private val noLeaf = -1000000
+  private val noLeaf: Double = -1000000
 
   /**
     * Draw the outline for the RTPLAN jaw and collimator.
@@ -125,22 +135,48 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
 
     val trans = new IsoImagePlaneTranslator(rtimage)
 
+    val scaleOffset = (scale - 1) / 2
+
+    /**
+      * Translate an isoplane point to an image plane point.
+      *
+      * The Y axis is negated (mirrored vertically) because of an error in IsoImagePlaneTranslator.
+      *
+      * Scaling of the image is also done.  Note that an offset must also be done ( + (scale * 2)) to
+      * put lines in the middle of enlarged pixels.
+      *
+      * @param point Point in isoplane.
+      * @return Point in image plane.
+      */
     def transPoint(point: Point2d): Point2i = {
       val x = point.getX
       val y = -point.getY // negate Y because IsoTranslator has Y coordinate reversed.
       val xx = x * cos - y * sin
-      val tx = (trans.iso2PixCoordX(xx) * scale).round.toInt
+      val tx = (trans.iso2PixCoordX(xx) * scale + scaleOffset).round.toInt
       val yy = x * sin + y * cos
-      val ty = (trans.iso2PixCoordY(yy) * scale).round.toInt
+      val ty = (trans.iso2PixCoordY(yy) * scale + scaleOffset).round.toInt
       new Point2i(tx, ty)
     }
 
+    /**
+      * Draw a line on the image.
+      *
+      * @param x1 X starting point in isoplane.
+      * @param y1 Y starting point in isoplane.
+      * @param x2 X ending point in isoplane.
+      * @param y2 Y ending point in isoplane.
+      */
     def drawLine(x1: Double, y1: Double, x2: Double, y2: Double): Unit = {
       val p1 = transPoint(new Point2d(x1, y1))
       val p2 = transPoint(new Point2d(x2, y2))
       gc.drawLine(p1.getX, p1.getY, p2.getX, p2.getY)
     }
 
+    /**
+      * Determine if leaf boundary (side) is within the bounds of the jaws and is therefore visible.
+      * @param index Index of leaf boundary.
+      * @return True if visible.
+      */
     def leafBoundaryInsideJaws(index: Int): Boolean = {
       val leafBoundary = leafBoundaryList(index)
       val inBounds =
@@ -149,24 +185,39 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
       inBounds
     }
 
-    def leafPositionInsideJaws(index: Int): Boolean = {
-      val leafPos = cps.mlcPosList(index)
+    def leafPositionInsideJaws(leafPos: Double): Boolean = {
       val inBounds =
         ((cps.x1Jaw.isDefined && cps.x1Jaw.get < leafPos) || cps.x1Jaw.isEmpty) &&
           ((cps.x2Jaw.isDefined && cps.x2Jaw.get > leafPos) || cps.x2Jaw.isEmpty)
       inBounds
     }
 
-    def drawLeafBoundaryX1(index: Int): Unit = {
+    /**
+      * Draw a single X1 MLC leaf and its end.
+      *
+      * @param index Index of leaf.
+      */
+    def drawX1Leaf(index: Int): Unit = {
+      // draw the leaf boundary (side of leaf)
       if (leafBoundaryInsideJaws(index)) {
-        val before = if (index < 1) noLeaf else cps.mlcPosList(index - 1)
-        val after = if (index >= cps.mlcPosList.size) noLeaf else cps.mlcPosList(index)
-        val jaw = if (cps.x1Jaw.isDefined) cps.x1Jaw.get else noLeaf
-        val largest = Seq(before, after, jaw).sorted.tail
+        val posBefore = cps.mlcX1Pos(index - 1)
+        val posAfter = cps.mlcX1Pos(index)
+        val oppPosBefore = cps.mlcX2Pos(index - 1)
+        val oppPosAfter = cps.mlcX2Pos(index)
+        val jaw = cps.x1Jaw
+        val oppJaw = cps.x2Jaw
+
+        val x1 = Seq(posBefore, jaw, posAfter)
+
+        val largest = Seq(posBefore, posAfter, jaw).flatten.sorted.tail
         val y = leafBoundaryList(index)
 
-        // far jaw limit
-        val maxX = if (cps.x2Jaw.isEmpty) largest.max else cps.x2Jaw.get
+        // X2 limit
+        val maxX: Double = {
+          val opposing = if (index < cps.mlcX2PosList.size) Some(cps.mlcX2PosList(index)) else None
+          Seq(cps.x2Jaw, opposing, Some(-noLeaf)).flatten.min
+          //Seq(cps.x2Jaw, Some(-noLeaf)).flatten.min
+        }
 
         drawLine(Math.min(largest.head, maxX), y, Math.min(largest.last, maxX), y)
       }
@@ -175,28 +226,38 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
       // draw the end of the leaf
       if (
         (index < (leafBoundaryList.size - 1)) &&
-        leafPositionInsideJaws(index) &&
+        leafPositionInsideJaws(cps.mlcX1PosList(index)) &&
         (leafBoundaryInsideJaws(index) || leafBoundaryInsideJaws(index + 1))
       ) {
         val y1 = if (leafBoundaryInsideJaws(index)) leafBoundaryList(index) else cps.y1Jaw.get
         val y2 = if (leafBoundaryInsideJaws(index + 1)) leafBoundaryList(index + 1) else cps.y2Jaw.get
 
-        drawLine(cps.mlcPosList(index), y1, cps.mlcPosList(index), y2)
+        drawLine(cps.mlcX1PosList(index), y1, cps.mlcX1PosList(index), y2)
       }
 
     }
 
-    def drawLeafBoundaryX2(index: Int): Unit = {
-      val posIndex = index + cps.mlcPosList.size / 2
+    /**
+      * Draw a single X1 MLC leaf and its end.
+      *
+      * @param index Index of leaf.
+      */
+    def drawX2Leaf(index: Int): Unit = {
       if (leafBoundaryInsideJaws(index)) {
-        val before = if (index < 1) -noLeaf else cps.mlcPosList(posIndex - 1)
-        val after = if (index >= cps.mlcPosList.size) noLeaf else cps.mlcPosList(posIndex)
+        val before = if (index < 1) -noLeaf else cps.mlcX2PosList(index - 1)
+        val after = if (index >= cps.mlcX2PosList.size) noLeaf else cps.mlcX2PosList(index)
         val jaw = if (cps.x2Jaw.isDefined) cps.x2Jaw.get else -noLeaf
         val smallest = Seq(before, after, jaw).sorted.reverse.tail
         val y = leafBoundaryList(index)
 
         // far jaw limit
-        val minX = if (cps.x1Jaw.isEmpty) smallest.max else cps.x1Jaw.get
+        // val minX = if (cps.x1Jaw.isEmpty) smallest.max else cps.x1Jaw.get
+        // X1 limit
+        val minX: Double = {
+          val opposing = if (index < cps.mlcX1PosList.size) Some(cps.mlcX1PosList(index)) else None
+          Seq(cps.x1Jaw, opposing, Some(noLeaf)).flatten.max
+          //Seq(cps.x2Jaw, Some(-noLeaf)).flatten.min
+        }
 
         drawLine(Math.max(smallest.head, minX), y, Math.max(smallest.last, minX), y)
       }
@@ -205,20 +266,20 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
       // draw the end of the leaf
       if (
         (index < (leafBoundaryList.size - 1)) &&
-        leafPositionInsideJaws(index) &&
+        leafPositionInsideJaws(cps.mlcX2PosList(index)) &&
         (leafBoundaryInsideJaws(index) || leafBoundaryInsideJaws(index + 1))
       ) {
         val y1 = if (leafBoundaryInsideJaws(index)) leafBoundaryList(index) else cps.y1Jaw.get
         val y2 = if (leafBoundaryInsideJaws(index + 1)) leafBoundaryList(index + 1) else cps.y2Jaw.get
 
-        drawLine(cps.mlcPosList(posIndex), y1, cps.mlcPosList(posIndex), y2)
+        drawLine(cps.mlcX2PosList(index), y1, cps.mlcX2PosList(index), y2)
       }
 
     }
 
     def drawMlc(): Unit = {
-      leafBoundaryList.indices.foreach(drawLeafBoundaryX1)
-      leafBoundaryList.indices.foreach(drawLeafBoundaryX2)
+      leafBoundaryList.indices.foreach(drawX1Leaf)
+      leafBoundaryList.indices.foreach(drawX2Leaf)
     }
 
     def drawXJaw(): Unit = {
@@ -239,7 +300,7 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
       drawLine(cps.x2Jaw.get, cps.y1Jaw.get, cps.x2Jaw.get, cps.y2Jaw.get) // right
     }
 
-    (cps.x1Jaw.isDefined, cps.y1Jaw.isDefined, cps.mlcPosList.nonEmpty) match {
+    (cps.x1Jaw.isDefined, cps.y1Jaw.isDefined, cps.mlcX1PosList.nonEmpty) match {
       case (true, true, true) =>
         drawBothJaws()
         drawMlc()
