@@ -23,6 +23,7 @@
     <orderEntry type="library" name="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER" level="application" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="scala-sdk-2.12.12" level="application" />
+    <orderEntry type="library" name="scala-sdk-2.12.17" level="application" />
     <orderEntry type="library" name="Maven: pixelmed:pixelmed:20221004" level="project" />
     <orderEntry type="library" name="Maven: edu.umro:ScalaUtil_2.12:0.0.15" level="project" />
     <orderEntry type="library" name="Maven: com.jsuereth:scala-arm_2.12:2.0" level="project" />
