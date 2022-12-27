@@ -10,9 +10,6 @@ import java.awt.image.BufferedImage
 import java.awt.Color
 import java.awt.Font
 import java.awt.Graphics2D
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
 import javax.vecmath.Point2d
 import javax.vecmath.Point2i
 
@@ -449,50 +446,5 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
     drawY2JawLabel()
     image
 
-  }
-}
-
-object DrawBEV extends Logging {
-  def main(args: Array[String]): Unit = {
-
-    def readDicom(dir: File, fileName: String): AttributeList = {
-      val al = new AttributeList
-      val file = new File(dir, fileName)
-      al.read(file)
-      al
-    }
-
-    println("Starting...")
-    val start = System.currentTimeMillis()
-
-    if (true) {
-      Trace.trace()
-      println(TagByName.BeamSequence)
-      Trace.trace()
-    }
-
-    val dir = new File("""D:\tmp\aqa\tmp\017076541\looking""")
-    val outDir = new File(dir, "test")
-    val rtplan = readDicom(dir, "RTPLAN.dcm")
-    val rtimage = readDicom(dir, "RTIMAGE.dcm")
-
-    val di = new DicomImage(rtimage)
-
-    val maxPix = (di.minPixelValue + di.maxPixelValue) * 1
-    val bufImg = di.toBufferedImage(ImageUtil.rgbColorMap(Color.white), di.minPixelValue, maxPix)
-
-    val drawBEV = DrawBEV(rtplan, rtimage)
-
-    val image = drawBEV.draw(bufImg, scale = 2)
-
-    val pngName = new SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss").format(new Date) + ".png"
-
-    val outPng = new File(outDir, pngName)
-    ImageUtil.writePngFile(image, outPng)
-    println("Wrote file to : " + outPng.getAbsolutePath)
-
-    val elapsed = System.currentTimeMillis() - start
-    println(s"Done.  Elapsed ms: $elapsed")
-    System.exit(0)
   }
 }
