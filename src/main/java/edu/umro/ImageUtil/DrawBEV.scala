@@ -10,6 +10,8 @@ import java.awt.image.BufferedImage
 import java.awt.Color
 import java.awt.Font
 import java.awt.Graphics2D
+import java.awt.Rectangle
+import java.awt.geom.Rectangle2D
 import javax.vecmath.Point2d
 import javax.vecmath.Point2i
 
@@ -44,7 +46,11 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
     * @return List of leaf boundaries.
     */
   private def getLeafBoundaryList(beamAl: AttributeList): Seq[Double] = {
-    DicomUtil.findAllSingle(beamAl, TagByName.LeafPositionBoundaries).head.getDoubleValues
+    val list = DicomUtil.findAllSingle(beamAl, TagByName.LeafPositionBoundaries)
+    if (list.isEmpty)
+      Seq()
+    else
+      list.head.getDoubleValues.toSeq
   }
 
   /**
@@ -65,8 +71,35 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
 
     private val rtimageGantryAngle = DicomUtil.findAllSingle(rtimage, TagByName.GantryAngle).head.getDoubleValues.head
 
+    /**
+      * Convert arbitrary angle in degrees to a number 360 < degrees >= 0
+      */
+    private def modulo360(degrees: Double): Double = {
+      ((degrees % 360.0) + 360.0) % 360.0
+    }
+
+    private def angleDiff(a: Double, b: Double): Double = {
+      val diff = modulo360(a - b).abs
+      (if (diff <= 180) diff else diff - 360).abs
+    }
+
     // use the ControlPointSequence that has a gantry angle closest to the gantry angle of the RTIMAGE
-    private val ControlPointSequence = DicomUtil.seqToAttr(beamAl, TagByName.ControlPointSequence).minBy(c => (c.get(TagByName.GantryAngle).getDoubleValues.head - rtimageGantryAngle).abs)
+    private val ControlPointSequence = {
+      val cpsList = DicomUtil.seqToAttr(beamAl, TagByName.ControlPointSequence)
+      def absGantryAngleDiff(al: AttributeList): Double = {
+        val angleAttrList = DicomUtil.findAllSingle(al, TagByName.GantryAngle)
+        val angleList = angleAttrList.flatMap(attr => attr.getDoubleValues)
+        val diff = angleList.map(angle => angleDiff(angle, rtimageGantryAngle).abs).min
+        diff
+      }
+      def hasGantryAngle(al: AttributeList): Boolean = {
+        val angleAttrList = DicomUtil.findAllSingle(al, TagByName.GantryAngle)
+        val angleList = angleAttrList.flatMap(attr => attr.getDoubleValues)
+        angleList.nonEmpty
+      }
+      val cps = cpsList.filter(hasGantryAngle).minBy(absGantryAngleDiff)
+      cps
+    }
 
     // use the first ControlPointSequence
     // private val ControlPointSequence = DicomUtil.seqToAttr(beamAl, TagByName.ControlPointSequence).head
@@ -380,14 +413,38 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
 
     val textDimensions = ImageText.getTextDimensions(textGc, "X")
 
+    def textVisible(xy: Point2i, text: String): Boolean = {
+      val rec: Rectangle2D = {
+        val r = ImageText.getTextDimensions(textGc, text)
+        new Rectangle((r.getX + xy.getX).toInt, (r.getY + xy.getY).toInt, r.getWidth.toInt, r.getHeight.toInt)
+      }
+
+      def xOk(x: Double) = (x >= 0) && (x < image.getWidth())
+      def yOk(y: Double) = (y >= 0) && (y < image.getHeight())
+
+      xOk(rec.getX) && xOk(rec.getX + rec.getWidth) &&
+      yOk(rec.getY) && yOk(rec.getY + rec.getHeight)
+    }
+
     def drawX1JawLabel(): Unit = {
       val x = cps.x1Jaw.get - textDimensions.getWidth
       val y = {
         if (cps.y1Jaw.isDefined) (cps.y1Jaw.get + cps.y2Jaw.get) / 2
         else 0.0
       }
-      val xy = transPoint(new Point2d(x, y))
-      ImageText.drawTextCenteredAt(textGc, xy.getX, xy.getY, "X1")
+
+      val text = "X1"
+
+      val xy = {
+        val inside = transPoint(new Point2d(x, y))
+
+        if (textVisible(inside, text))
+          inside
+        else {
+          transPoint(new Point2d(cps.x1Jaw.get + textDimensions.getWidth, y))
+        }
+      }
+      ImageText.drawTextCenteredAt(textGc, xy.getX, xy.getY, text)
     }
 
     def drawX2JawLabel(): Unit = {
@@ -396,8 +453,18 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
         if (cps.y1Jaw.isDefined) (cps.y1Jaw.get + cps.y2Jaw.get) / 2
         else 0.0
       }
-      val xy = transPoint(new Point2d(x, y))
-      ImageText.drawTextCenteredAt(textGc, xy.getX, xy.getY, "X2")
+      val text = "X2"
+
+      val xy = {
+        val inside = transPoint(new Point2d(x, y))
+
+        if (textVisible(inside, text))
+          inside
+        else {
+          transPoint(new Point2d(cps.x2Jaw.get - textDimensions.getWidth, y))
+        }
+      }
+      ImageText.drawTextCenteredAt(textGc, xy.getX, xy.getY, text)
     }
 
     def drawY1JawLabel(): Unit = {
@@ -406,8 +473,16 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
         else 0.0
       }
       val y = cps.y1Jaw.get - textDimensions.getHeight / 2.0
-      val xy = transPoint(new Point2d(x, y))
-      ImageText.drawTextCenteredAt(textGc, xy.getX, xy.getY, "Y1")
+      val text = "Y1"
+
+      val xy = {
+        val inside = transPoint(new Point2d(x, y))
+        if (textVisible(inside, text))
+          inside
+        else
+          transPoint(new Point2d(x, cps.y1Jaw.get + textDimensions.getHeight / 2.0))
+      }
+      ImageText.drawTextCenteredAt(textGc, xy.getX, xy.getY, text)
     }
 
     def drawY2JawLabel(): Unit = {
@@ -416,8 +491,17 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
         else 0.0
       }
       val y = cps.y2Jaw.get + textDimensions.getHeight / 2.0
-      val xy = transPoint(new Point2d(x, y))
-      ImageText.drawTextCenteredAt(textGc, xy.getX, xy.getY, "Y2")
+      val text = "Y2"
+
+      val xy = {
+        val inside = transPoint(new Point2d(x, y))
+        if (textVisible(inside, text))
+          inside
+        else
+          transPoint(new Point2d(x, cps.y2Jaw.get - textDimensions.getHeight / 2.0))
+      }
+
+      ImageText.drawTextCenteredAt(textGc, xy.getX, xy.getY, text)
     }
 
     /**

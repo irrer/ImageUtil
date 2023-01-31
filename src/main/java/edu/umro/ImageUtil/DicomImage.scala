@@ -16,11 +16,14 @@
 
 package edu.umro.ImageUtil
 
-import com.pixelmed.dicom.{AttributeList, TagFromName}
+import com.pixelmed.dicom.AttributeList
+import com.pixelmed.dicom.TagFromName
 
-import java.awt.geom.{Point2D, Rectangle2D}
+import java.awt.Color
+import java.awt.Rectangle
+import java.awt.geom.Point2D
+import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
-import java.awt.{Color, Rectangle}
 import java.security.InvalidParameterException
 import javax.vecmath.Point2i
 import scala.annotation.tailrec
@@ -368,6 +371,8 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
   def toBufferedImage(color: Color): BufferedImage = toBufferedImage(ImageUtil.rgbColorMap(color), minPixelValue, maxPixelValue)
 
+
+
   /**
     * Create a buffered image of this DICOM image using multiple colors to give a deeper color depth of 1276 than the standard 256.
     */
@@ -409,6 +414,26 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     bufImage
   }
 
+  def dropOutlierPixels(percentToDrop: Double): (Float, Float) = {
+    val numDrop = ((Rows * Columns) * ((percentToDrop / 2) / 100.0)).round.toInt
+
+    @tailrec
+    def trim(total: Int, hist: Seq[DicomImage.HistPoint]): Seq[DicomImage.HistPoint] = {
+      if ((total < numDrop) && hist.nonEmpty)
+        trim(total + hist.head.count, hist.tail)
+      else hist
+    }
+
+    if (histogram.size >= 1276) {
+      val dropLo = trim(0, histogram)
+      val minPix = if (dropLo.isEmpty) minPixelValue else dropLo.head.value
+      val dropHi = trim(0, dropLo.reverse)
+      val maxPix = if (dropHi.isEmpty) maxPixelValue else dropHi.head.value
+      (minPix, maxPix)
+    } else
+      (minPixelValue, maxPixelValue)
+  }
+
   /**
     * Make a deep-color buffered image of the image.
     *
@@ -422,21 +447,8 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     * color for the lowest or highest value respectively.
     */
   def toDeepColorBufferedImage(percentToDrop: Double): BufferedImage = {
-    val numDrop = ((Rows * Columns) * ((percentToDrop / 2) / 100.0)).round.toInt
-    @tailrec
-    def trim(total: Int, hist: Seq[DicomImage.HistPoint]): Seq[DicomImage.HistPoint] = {
-      if ((total < numDrop) && hist.nonEmpty)
-        trim(total + hist.head.count, hist.tail)
-      else hist
-    }
-    if (histogram.size >= 1276) {
-      val dropLo = trim(0, histogram)
-      val minPix = if (dropLo.isEmpty) minPixelValue else dropLo.head.value
-      val dropHi = trim(0, dropLo.reverse)
-      val maxPix = if (dropHi.isEmpty) maxPixelValue else dropHi.head.value
-
-      toDeepColorBufferedImage(minPix, maxPix)
-    } else toDeepColorBufferedImage(minPixelValue, maxPixelValue)
+    val minMax = dropOutlierPixels(percentToDrop)
+    toDeepColorBufferedImage(minMax._1, minMax._2)
   }
 
   /**
