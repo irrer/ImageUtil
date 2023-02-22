@@ -40,24 +40,21 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
   private val cos = Math.cos(colAngle_rad)
 
   /**
-    * Get the leaf boundaries (positions of sides of leaves) for the given beam.
-    *
-    * @param beamAl Beam sequence for the beam of interest.
-    * @return List of leaf boundaries.
-    */
-  private def getLeafBoundaryList(beamAl: AttributeList): Seq[Double] = {
-    val list = DicomUtil.findAllSingle(beamAl, TagByName.LeafPositionBoundaries)
-    if (list.isEmpty)
-      Seq()
-    else
-      list.head.getDoubleValues.toSeq
-  }
-
-  /**
     * Sort out the jaw an MLC values to simplify access.  If the
     * @param beamAl Attribute list of beam of interest.
     */
-  private case class ControlPointSequence(beamAl: AttributeList, rtimage: AttributeList) {
+  case class ControlPointSequence(beamAl: AttributeList, rtimage: AttributeList) {
+
+    /**
+      * The leaf boundaries (positions of sides of leaves) for the given beam.
+      */
+    def leafBoundaryList: Seq[Double] = {
+      val list = DicomUtil.findAllSingle(beamAl, TagByName.LeafPositionBoundaries)
+      if (list.isEmpty)
+        Seq()
+      else
+        list.head.getDoubleValues.toSeq
+    }
 
     //noinspection ScalaUnusedSymbol
     private case class PosSeq(posSeq: AttributeList) {
@@ -122,7 +119,7 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
 
     def mlcX1Pos(index: Int): Option[Double] = if ((index >= 0) && (index < mlcX1PosList.size)) Some(mlcX1PosList(index)) else None
 
-    private val mlcX2PosList: Seq[Double] = posSeq.find(_.isXMlc) match {
+    val mlcX2PosList: Seq[Double] = posSeq.find(_.isXMlc) match {
       case Some(ps) => ps.posList.takeRight(ps.posList.size / 2)
       case _        => Seq()
     }
@@ -130,6 +127,8 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
     def mlcX2Pos(index: Int): Option[Double] = if ((index >= 0) && (index < mlcX2PosList.size)) Some(mlcX2PosList(index)) else None
 
   }
+
+  val controlPointSequence: ControlPointSequence = ControlPointSequence(beamAl = getBeamOfRtimage(rtplan, rtimage), rtimage)
 
   /**
     * Draw the outline for the RTPLAN jaw and collimator.
@@ -153,8 +152,7 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
 
     val cps = ControlPointSequence(beamAl, rtimage)
 
-    val leafBoundaryList = getLeafBoundaryList(beamAl)
-    Trace.trace("leafBoundaryList: " + leafBoundaryList.mkString("  "))
+    Trace.trace("leafBoundaryList: " + cps.leafBoundaryList.mkString("  "))
 
     val image = ImageUtil.magnify(initialImage, scale)
     // val image = ImageUtil.deepCopy(initialImage)
@@ -252,8 +250,8 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
       if (cps.mlcX1Pos(index).isDefined) {
         val xLo = -isoInfinity // off the left edge of the image plane
         val xHi = cps.mlcX1Pos(index).get
-        val yLo = leafBoundaryList(index)
-        val yHi = leafBoundaryList(index + 1)
+        val yLo = cps.leafBoundaryList(index)
+        val yHi = cps.leafBoundaryList(index + 1)
 
         fillRect(gc, xLo, yLo, xHi, yHi)
       }
@@ -268,8 +266,8 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
       if (cps.mlcX2Pos(index).isDefined) {
         val xLo = cps.mlcX2Pos(index).get
         val xHi = isoInfinity // off the right edge of the image plane
-        val yLo = leafBoundaryList(index)
-        val yHi = leafBoundaryList(index + 1)
+        val yLo = cps.leafBoundaryList(index)
+        val yHi = cps.leafBoundaryList(index + 1)
 
         fillRect(gc, xLo, yLo, xHi, yHi)
       }
@@ -369,8 +367,8 @@ case class DrawBEV(rtplan: AttributeList, rtimage: AttributeList) extends Loggin
         val tmpImage = makeWorkspace()
         val gc = tmpImage.getGraphics.asInstanceOf[Graphics2D]
         gc.setColor(Color.white)
-        leafBoundaryList.indices.foreach(index => drawX1Leaf(gc, index))
-        leafBoundaryList.indices.foreach(index => drawX2Leaf(gc, index))
+        cps.leafBoundaryList.indices.foreach(index => drawX1Leaf(gc, index))
+        cps.leafBoundaryList.indices.foreach(index => drawX2Leaf(gc, index))
         drawX1Jaw(gc)
         drawX2Jaw(gc)
         drawY1Jaw(gc)
