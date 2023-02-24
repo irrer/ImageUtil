@@ -284,7 +284,7 @@ object ConstructIdealDicom {
     val isoplane = trans.pix2Iso(x, y)
 
     def fmt(d: Double) = d.formatted("%20.15f")
-    println(file.getName.formatted("%20s") + "  x,y " + fmt(x) + ", " + fmt(y) + "    image plane: " + fmt(isoplane.getX) + ", " + fmt(isoplane.getY))
+    println(file.getName.format("%20s") + "  x,y " + fmt(x) + ", " + fmt(y) + "    image plane: " + fmt(isoplane.getX) + ", " + fmt(isoplane.getY))
   }
 
   def edgeBySlopes(al: AttributeList, rect: Rectangle): Unit = {

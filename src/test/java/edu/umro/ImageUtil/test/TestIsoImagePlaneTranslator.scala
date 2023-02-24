@@ -16,14 +16,10 @@
 
 package edu.umro.ImageUtil.test;
 
-import edu.umro.ScalaUtil.Trace
-import java.io.File
 import com.pixelmed.dicom.AttributeList
-import edu.umro.ImageUtil.DicomImage
-import java.awt.Rectangle
-import edu.umro.util.Utility
-import edu.umro.ImageUtil.ImageUtil
 import edu.umro.ImageUtil.IsoImagePlaneTranslator
+
+import java.io.File
 
 object TestIsoImagePlaneTranslator {
 
@@ -32,7 +28,7 @@ object TestIsoImagePlaneTranslator {
   def check(name: String, cur: Double, old: Double) {
     val diff = cur - old
     def fmt(d: Double) = d.formatted("%14.8f")
-    println(name.formatted("%-16s") + " cur: " + fmt(cur) + "     old: " + fmt(old) + "    diff: " + fmt(diff))
+    println(name.format("%-16s") + " cur: " + fmt(cur) + "     old: " + fmt(old) + "    diff: " + fmt(diff))
     if (diff.abs > 0.00001) {
       Thread.sleep(100)
       throw new RuntimeException("diff is too large")

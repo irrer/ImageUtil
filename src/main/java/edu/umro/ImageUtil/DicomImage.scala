@@ -634,7 +634,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
     /** Maximum width needed to display any number. */
     val numLen = Seq[Float](minPixelValue, maxPixelValue, width, height).map(n => n.toInt.toString.length).max
-    def fmtTxt(t: String) = t.formatted("%" + (numLen + 1) + "s")
+    def fmtTxt(t: String) = t.format("%" + (numLen + 1) + "s")
     def fmt(f: Float) = f.toInt.formatted("%" + (numLen + 1) + "d")
 
     val header = fmtTxt("") + "   " + (0 until width).map(x => fmt(x)).mkString + "\n"
