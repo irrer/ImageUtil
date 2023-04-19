@@ -26,9 +26,11 @@ import java.awt.geom.Point2D
   * the origin at the center of the image.   Pixel plane values are in pixels with the origin in the
   * upper left corner of the image.  Functions do not factor in XRayImageReceptorTranslation, which if
   * needed, should be done by the caller.
-  */
-
-class IsoImagePlaneTranslator(al: AttributeList) {
+ *
+ * @param al Base it on this attribute list.  It should be an RTIMAGE.
+ * @param RTImageSID Specify this to override the RTImageSID value found in al.
+ */
+class IsoImagePlaneTranslator(al: AttributeList, RTImageSID: Option[Double] = None) {
   private def dblOf(tag: AttributeTag): Double = al.get(tag).getDoubleValues.head
   private def intOf(tag: AttributeTag): Int = al.get(tag).getIntegerValues.head
 
@@ -41,7 +43,9 @@ class IsoImagePlaneTranslator(al: AttributeList) {
   val pixelSizeX: Double = ImagePlanePixelSpacing(0)
   val pixelSizeY: Double = ImagePlanePixelSpacing(1)
 
-  val beamExpansionRatio: Double = dblOf(TagByName.RTImageSID) / dblOf(TagByName.RadiationMachineSAD)
+  //noinspection ScalaWeakerAccess
+  val rtimageSid: Double = Seq(RTImageSID, Some(dblOf(TagByName.RTImageSID))).flatten.head
+  val beamExpansionRatio: Double = rtimageSid / dblOf(TagByName.RadiationMachineSAD)
 
   // Multiply this value by a measurement in mm in the isoplane to get the corresponding value in pixels in the image plane.
   private val expansionFactorX = beamExpansionRatio / pixelSizeX
@@ -125,11 +129,14 @@ class IsoImagePlaneTranslator(al: AttributeList) {
   def pix2Iso(pixPoint: Point2D.Double): Point2D.Double = pix2Iso(pixPoint.getX, pixPoint.getY)
 
   /** Minimum point in the isoplane that is still in the image plane (can appear on the imager). */
+  //noinspection ScalaUnusedSymbol
   val minImage_mm: Point2D.Double = pix2Iso(0, 0)
 
   /** Maximum point in the isoplane that is still in the image plane (can appear on the imager). */
+  //noinspection ScalaUnusedSymbol
   val maxImage_mm: Point2D.Double = pix2Iso(width - 1, height - 1)
 
+  //noinspection ScalaUnusedSymbol
   def equalTo(other: IsoImagePlaneTranslator): Boolean = {
     (height == other.height) &&
     (width == other.width) &&
@@ -145,6 +152,7 @@ class IsoImagePlaneTranslator(al: AttributeList) {
       "    ImagePlanePixelSpacing: " + pixelSizeX.formatted("%7.5f") + ", " + pixelSizeY.formatted("%7.5f")
   }
 
+  //noinspection ScalaUnusedSymbol
   val validRTImagePosition: Boolean = {
     val RTImagePosition = al.get(TagByName.RTImagePosition)
     if (RTImagePosition == null)
