@@ -371,8 +371,6 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
   def toBufferedImage(color: Color): BufferedImage = toBufferedImage(ImageUtil.rgbColorMap(color), minPixelValue, maxPixelValue)
 
-
-
   /**
     * Create a buffered image of this DICOM image using multiple colors to give a deeper color depth of 1276 than the standard 256.
     */
@@ -632,17 +630,45 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     */
   def pixelsToText: String = {
 
-    /** Maximum width needed to display any number. */
-    val numLen = Seq[Float](minPixelValue, maxPixelValue, width, height).map(n => n.toInt.toString.length).max
-    def fmtTxt(t: String) = t.format("%" + (numLen + 1) + "s")
-    def fmt(f: Float) = f.toInt.formatted("%" + (numLen + 1) + "d")
+    // true if all pixels can be exactly represented as integers
+    val allInt = pixelData.flatten.map(p => p.toInt == p).reduce(_ && _)
 
-    val header = fmtTxt("") + "   " + (0 until width).map(x => fmt(x)).mkString + "\n"
-    def makeRow(y: Int) = fmt(y) + " : " + pixelData(y).map(p => fmt(p)).mkString + "\n"
+    val lenY = height.toString.length
+    def fmtY(y: Int): String = y.formatted(s"%${lenY}d")
 
-    val text = header + (0 until height).map(y => makeRow(y)).mkString
+    if (allInt) {
 
-    text
+      /** Maximum width needed to display any number. */
+      val numLen = Seq[Float](minPixelValue, maxPixelValue, width, height).map(n => n.toInt.toString.length).max
+      def fmtTxt(t: String) = t.format("%" + (numLen + 1) + "s")
+      def fmt(f: Float) = f.toInt.formatted("%" + (numLen + 1) + "d")
+
+      val header = fmtTxt("") + "     " + (0 until width).map(x => fmt(x)).mkString + "\n"
+      def makeRow(y: Int) = fmtY(y) + " : " + pixelData(y).map(p => fmt(p)).mkString + "\n"
+
+      val text = "\n" + header + (0 until height).map(y => makeRow(y)).mkString
+
+      text
+    } else {
+      def fmtF(f: Float): String = {
+        val text = f.formatted("%6.3e").toDouble.formatted("%32.16f").replaceAll("0*$", "").trim
+        if (text.endsWith(".")) text + "0" else text
+      }
+      val textList = pixelData.flatten.map(fmtF)
+      val left = textList.map(t => t.replaceAll("\\..*", "").length).max
+      val right = textList.map(t => t.replaceAll(".*\\.", "").length).max
+      val len = left + right + 1 + 2 // width of number + decimal + spaces in between
+
+      val fmt = s"%$left.${right}f"
+
+      def makeRow(y: Int): String = fmtY(y) + " : " + pixelData(y).map(p => p.formatted(fmt)).mkString("  ") + "\n"
+
+      val header = "   " + (0 until width).map(x => x.formatted(s"%${len}d")).mkString + "\n"
+
+      val text = "\n" + header + (0 until height).map(y => makeRow(y)).mkString
+      text
+    }
+
   }
 
   /**
