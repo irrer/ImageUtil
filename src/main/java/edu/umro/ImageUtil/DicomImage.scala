@@ -17,7 +17,9 @@
 package edu.umro.ImageUtil
 
 import com.pixelmed.dicom.AttributeList
+import com.pixelmed.dicom.AttributeTag
 import com.pixelmed.dicom.TagFromName
+import edu.umro.DicomDict.TagByName
 
 import java.awt.Color
 import java.awt.Rectangle
@@ -51,10 +53,11 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     pixDat
   }
 
-  /**
+  /**,
     * Make a new <code>DicomImage</code> based on a sub-rectangle of this one.  If part of the
     * specified rectangle is out of bounds a cropped version will be used.
     */
+  //noinspection SpellCheckingInspection
   def getSubimage(rectangle: Rectangle): DicomImage = {
     new DicomImage(getSubArray(rectangle))
   }
@@ -73,6 +76,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   /** maximum pixel value. */
   lazy val maxPixelValue: Float = pixelData.map(row => row.max).max
 
+  //noinspection ScalaUnusedSymbol
   def validPoint(x: Int, y: Int): Boolean = {
     val ok = (x >= 0) && (x < width) && (y >= 0) && (y < height)
     ok
@@ -94,7 +98,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   }
 
   /**
-    * Get the sum of all of the pixels.
+    * Get the sum of all pixels.
     */
   def sum: Float = rowSums.sum
 
@@ -103,6 +107,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     *
     * @param count: Number of pixel values to get.
     */
+  //noinspection ScalaUnusedSymbol
   def minPixelValues(count: Int): IndexedSeq[Float] = {
     pixelData.foldLeft(IndexedSeq[Float]())((list, row) => (list ++ row).sorted.take(count))
   }
@@ -112,6 +117,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     *
     * @param count: Number of pixel values to get.
     */
+  //noinspection ScalaUnusedSymbol
   def maxPixelValues(count: Int): IndexedSeq[Float] = {
     pixelData.foldLeft(IndexedSeq[Float]())((list, row) => (row ++ list).sorted.takeRight(count))
   }
@@ -123,7 +129,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     *
     * @param maxBadPix: restrict count of bad pixels to this many
     *
-    * @param radius: Distance to the farthest pixel for comparison.  For example, a
+    * @param radius Distance to the farthest pixel for comparison.  For example, a
     * value of 3 would mean that a (3*2+1)*(3*2+1) = 7*7 pixel square would be used.
     */
   private def findWorstPixelsQuickly(maxBadPix: Int, radius: Int, BadPixelMinimumDeviation_CU: Double): Seq[DicomImage.PixelRating] = {
@@ -281,8 +287,10 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   /**
     * Public function wrapper to support testing.
     */
+  //noinspection ScalaWeakerAccess
   def testFindWorstPixelsQuickly(maxBadPix: Int, radius: Int, BadPixelMinimumDeviation_CU: Double): Seq[DicomImage.PixelRating] = findWorstPixelsQuickly(maxBadPix, radius, BadPixelMinimumDeviation_CU)
 
+  //noinspection ScalaUnusedSymbol
   def identifyBadPixels(maxBadPixels: Int, stdDev: Double, BadPixelMaximumPercentChange: Double, radius: Int, BadPixelMinimumDeviation_CU: Double): Seq[DicomImage.PixelRating] = {
 
     val coarseBadList = findWorstPixelsQuickly(maxBadPixels * 4, radius, BadPixelMinimumDeviation_CU)
@@ -329,6 +337,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   /**
     * Given a flood field, divide every pixel in this image by every pixel in the flood field.
     */
+  //noinspection ScalaUnusedSymbol
   def biasCorrect(floodImage: DicomImage): DicomImage = {
     val unbiased = (0 until height).map(row => (0 until width).map(col => pixelData(row)(col) / floodImage.pixelData(row)(col)))
     new DicomImage(unbiased)
@@ -435,7 +444,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   /**
     * Make a deep-color buffered image of the image.
     *
-    * @param percentToDrop: The percent of pixels that will be dropped from the high and low end of the
+    * @param percentToDrop The percent of pixels that will be dropped from the high and low end of the
     * range of values to avoid letting a few bad pixels with extremely high or low values to expand the
     * pixel range that most of the image contrast is lost.  To ignore this effect and use the full pixel
     * range, use a value of 0.
@@ -459,11 +468,12 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     list
   }
 
+  //noinspection ScalaUnusedSymbol
   def binnedHistogram(size: Int): Seq[DicomImage.HistPoint] = {
-    val incr = (maxPixelValue - minPixelValue) / size
-    def vToBin(v: Float): Int = ((v - minPixelValue) / incr).floor.toInt
+    val inc = (maxPixelValue - minPixelValue) / size
+    def vToBin(v: Float): Int = ((v - minPixelValue) / inc).floor.toInt
 
-    def binToV(bs: (Int, Int)): DicomImage.HistPoint = DicomImage.HistPoint((bs._1 * incr) + minPixelValue, bs._2)
+    def binToV(bs: (Int, Int)): DicomImage.HistPoint = DicomImage.HistPoint((bs._1 * inc) + minPixelValue, bs._2)
     val list = pixelData.flatten.groupBy(v => vToBin(v)).toList.map(g => (g._1, g._2.size)).sortWith((a, b) => a._1 < b._1).map(bs => binToV(bs))
     list
   }
@@ -601,23 +611,23 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     val w = r.floor.toInt - x
     val h = b.floor.toInt - y
 
-    val topFrac = (rect.getY.ceil - rect.getY).toFloat
-    val botFrac = (b - b.floor).toFloat
-    val lftFrac = (rect.getX.ceil - rect.getX).toFloat
-    val rgtFrac = (r - r.floor).toFloat
+    val topFraction = (rect.getY.ceil - rect.getY).toFloat
+    val botFraction = (b - b.floor).toFloat
+    val lftFraction = (rect.getX.ceil - rect.getX).toFloat
+    val rgtFraction = (r - r.floor).toFloat
 
     // Sum of large area in the middle
     val centerSum = getSubimage(new Rectangle(x, y, w, h)).sum
 
-    val topSum = getSubimage(new Rectangle(x, rect.getY.floor.toInt, w, 1)).sum * topFrac
-    val botSum = getSubimage(new Rectangle(x, b.floor.toInt, w, 1)).sum * botFrac
-    val lftSum = getSubimage(new Rectangle(rect.getX.floor.toInt, y, 1, h)).sum * lftFrac
-    val rgtSum = getSubimage(new Rectangle(r.floor.toInt, y, 1, h)).sum * rgtFrac
+    val topSum = getSubimage(new Rectangle(x, rect.getY.floor.toInt, w, 1)).sum * topFraction
+    val botSum = getSubimage(new Rectangle(x, b.floor.toInt, w, 1)).sum * botFraction
+    val lftSum = getSubimage(new Rectangle(rect.getX.floor.toInt, y, 1, h)).sum * lftFraction
+    val rgtSum = getSubimage(new Rectangle(r.floor.toInt, y, 1, h)).sum * rgtFraction
 
-    val topLft = get(rect.getX.floor.toInt, rect.getY.floor.toInt) * topFrac * lftFrac
-    val topRgt = get(r.floor.toInt, rect.getY.floor.toInt) * topFrac * rgtFrac
-    val botLft = get(rect.getX.floor.toInt, b.floor.toInt) * botFrac * lftFrac
-    val botRgt = get(r.floor.toInt, b.floor.toInt) * botFrac * rgtFrac
+    val topLft = get(rect.getX.floor.toInt, rect.getY.floor.toInt) * topFraction * lftFraction
+    val topRgt = get(r.floor.toInt, rect.getY.floor.toInt) * topFraction * rgtFraction
+    val botLft = get(rect.getX.floor.toInt, b.floor.toInt) * botFraction * lftFraction
+    val botRgt = get(r.floor.toInt, b.floor.toInt) * botFraction * rgtFraction
 
     val sum = centerSum + topSum + botSum + lftSum + rgtSum + topLft + topRgt + botLft + botRgt
 
@@ -634,14 +644,14 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     val allInt = pixelData.flatten.map(p => p.toInt == p).reduce(_ && _)
 
     val lenY = height.toString.length
-    def fmtY(y: Int): String = y.formatted(s"%${lenY}d")
+    def fmtY(y: Int): String = s"%${lenY}d".format(y)
 
     if (allInt) {
 
       /** Maximum width needed to display any number. */
       val numLen = Seq[Float](minPixelValue, maxPixelValue, width, height).map(n => n.toInt.toString.length).max
       def fmtTxt(t: String) = t.format("%" + (numLen + 1) + "s")
-      def fmt(f: Float) = f.toInt.formatted("%" + (numLen + 1) + "d")
+      def fmt(f: Float) = ("%" + (numLen + 1) + "d").format(f.toInt)
 
       val header = fmtTxt("") + "     " + (0 until width).map(x => fmt(x)).mkString + "\n"
       def makeRow(y: Int) = fmtY(y) + " : " + pixelData(y).map(p => fmt(p)).mkString + "\n"
@@ -651,7 +661,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       text
     } else {
       def fmtF(f: Float): String = {
-        val text = f.formatted("%6.3e").toDouble.formatted("%32.16f").replaceAll("0*$", "").trim
+        val text = "%32.16f".format("%6.3e".format(f).toDouble).replaceAll("0*$", "").trim
         if (text.endsWith(".")) text + "0" else text
       }
       val textList = pixelData.flatten.map(fmtF)
@@ -661,9 +671,9 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
       val fmt = s"%$left.${right}f"
 
-      def makeRow(y: Int): String = fmtY(y) + " : " + pixelData(y).map(p => p.formatted(fmt)).mkString("  ") + "\n"
+      def makeRow(y: Int): String = fmtY(y) + " : " + pixelData(y).map(p => fmt.format(p)).mkString("  ") + "\n"
 
-      val header = "   " + (0 until width).map(x => x.formatted(s"%${len}d")).mkString + "\n"
+      val header = "   " + (0 until width).map(x => s"%${len}d".format(x)).mkString + "\n"
 
       val text = "\n" + header + (0 until height).map(y => makeRow(y)).mkString
       text
@@ -673,9 +683,35 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
 
   /**
     * Create a new pixel array with the pixels processed with the given transform.
+    * @param trans Converts a single pixel.
+    * @return a new pixel array.
     */
+  //noinspection ScalaWeakerAccess
   def transform(trans: Float => Float): IndexedSeq[IndexedSeq[Float]] = {
     pixelData.map(row => row.map(pixel => trans(pixel)))
+  }
+
+  /**
+    * Scale all pixels: new = (old * RescaleSlope) + RescaleIntercept
+    * @param RescaleSlope Multiply each pixel by this.
+    * @param RescaleIntercept Then add this.
+    * @return
+    */
+  //noinspection ScalaWeakerAccess
+  def scalePixels(RescaleSlope: Float, RescaleIntercept: Float): DicomImage = {
+    def trans(value: Float): Float = (value * RescaleSlope) + RescaleIntercept
+    new DicomImage(transform(trans))
+  }
+
+  /**
+    * Scale pixels according to the RescaleSlope and RescaleIntercept values in the given al.
+    * @param al Attribute list for DICOM.
+    * @return A new DICOM image with pixels scaled.
+    */
+  //noinspection ScalaUnusedSymbol
+  def scalePixels(al: AttributeList): DicomImage = {
+    def floatOf(tag: AttributeTag): Float = al.get(tag).getDoubleValues.head.toFloat
+    scalePixels(floatOf(TagByName.RescaleSlope), floatOf(TagByName.RescaleIntercept))
   }
 
 }
@@ -684,10 +720,14 @@ object DicomImage {
 
   case class PixelRating(rating: Float, x: Int, y: Int) { // extends Point(point.x, point.y) {
     override def toString: String = "rating: " + rating + " : " + x + ", " + y
+    //noinspection ScalaUnusedSymbol
     val isInvalid: Boolean = rating.toString.toLowerCase.contains("n")
   }
 
+  //noinspection ScalaUnusedSymbol
   def sortPixelRating1(a: PixelRating, b: PixelRating): Boolean = a.rating.toDouble > b.rating.toDouble
+
+  //noinspection ScalaWeakerAccess
   def sortPixelRating(list: Seq[PixelRating]): Seq[PixelRating] = {
     val sorted = list.sortBy(_.rating).reverse
     sorted
@@ -707,6 +747,7 @@ object DicomImage {
 
   //  case class BadPixelSet(list: Seq[PixelRating], minBound: Float, maxBound: Float);
 
+  //noinspection ScalaWeakerAccess
   def getPixelData(attributeList: AttributeList): IndexedSeq[IndexedSeq[Float]] = {
     val pixDat = attributeList.getPixelData.getShortValues
     val Rows = attributeList.get(TagFromName.Rows).getIntegerValues()(0)
