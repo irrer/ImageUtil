@@ -53,7 +53,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     pixDat
   }
 
-  /**,
+  /**
     * Make a new <code>DicomImage</code> based on a sub-rectangle of this one.  If part of the
     * specified rectangle is out of bounds a cropped version will be used.
     */
@@ -125,7 +125,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   /**
     * Use a quick but coarse algorithm to scan the entire image and make a list of the worst pixels.
     *
-    * Note: As quick as this is, it takes about 7.5 seconds to process an 1190x1190 image.
+    * Note: As quick as this is, it takes about 7.5 seconds to process 1190x1190 image.
     *
     * @param maxBadPix: restrict count of bad pixels to this many
     *
@@ -712,6 +712,37 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   def scalePixels(al: AttributeList): DicomImage = {
     def floatOf(tag: AttributeTag): Float = al.get(tag).getDoubleValues.head.toFloat
     scalePixels(floatOf(TagByName.RescaleSlope), floatOf(TagByName.RescaleIntercept))
+  }
+
+  /**
+    * Given a one-parameter function, perform that function on each pixel.
+    * @param func Transforms a single pixel.
+    * @return A new DicomImage.
+    */
+  //noinspection ScalaUnusedSymbol
+  def fun1(func: Float => Float): DicomImage = {
+    def row(y: Int): IndexedSeq[Float] =
+      (0 until width).map(x => func(get(x, y)))
+    val pix = (0 until height).map(row)
+
+    new DicomImage(pix)
+  }
+
+  /**
+    * Given a two-parameter function, perform that function on each pixel of the pair of images.
+    *
+    * new pixel = func(oldPixel, otherPixel)
+    *
+    * @param func Transforms a single pixel.
+    * @return A new DicomImage.
+    */
+  //noinspection ScalaUnusedSymbol
+  def fun2(func: (Float, Float) => Float, other: DicomImage): DicomImage = {
+    def row(y: Int): IndexedSeq[Float] =
+      (0 until width).map(x => func(get(x, y), other.get(x, y)))
+    val pix = (0 until height).map(row)
+
+    new DicomImage(pix)
   }
 
 }
