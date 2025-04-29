@@ -71,22 +71,27 @@ object LocateEdge {
     *
     * For edge location to work, some values in the profile must be greater than the threshold and some must be
     * greater than the threshold.  If this is not true, then a value of -1 is returned.
+    *
+    * @param profile Profile of the edge, either going from low to high or high to low.
+    * @param threshold Where the precise location of the edge should be. Usually this value is the 50% point.
+    *                  For example, if the low value was 5 and the high value was 11, then this would be 8.
+    *
     */
-  def locateEdge(unorderedRoFile: IndexedSeq[Float], threshold: Double): Double = {
+  def locateEdge(profile: IndexedSeq[Float], threshold: Double): Double = {
 
-    val reversed = unorderedRoFile.head > unorderedRoFile.last
-    val profile = if (reversed) unorderedRoFile.reverse else unorderedRoFile
+    val reversed = profile.head > profile.last
+    val profileLoToHi = if (reversed) profile.reverse else profile
 
-    validate(profile, threshold)
+    validate(profileLoToHi, threshold)
     val lo = -1
-    val hi = profile.size
+    val hi = profileLoToHi.size
 
-    val spline = toCubicSpline(profile)
+    val spline = toCubicSpline(profileLoToHi)
 
     val result = binarySearch(lo, hi, lo - 1, hi + 1, 0, spline, threshold)
 
     if (reversed)
-      profile.size - 1 - result
+      profileLoToHi.size - 1 - result
     else
       result
 
