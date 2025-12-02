@@ -25,6 +25,8 @@ import javax.vecmath.Point3i
 
 case class DicomVolume(volume: Seq[DicomImage]) {
 
+  private type ImSeq[T] = scala.collection.immutable.IndexedSeq[T]
+
   //def this(alList:  Seq[AttributeList]) = this(DicomVolume.sortDicomListByZ(alList).map(al => new DicomImage(al)))
 
   val xSize: Int = volume.head.width
@@ -70,10 +72,10 @@ case class DicomVolume(volume: Seq[DicomImage]) {
   /**
     * Get the sum of each line of voxels in the X axis.  In other words, all
     * voxels with the same y and z coordinates are summed.  This is akin to
-    * creating a 2 dimensional profile seen from the X axis.
+    * creating a 2-dimensional profile seen from the X axis.
     */
   def sumX: DicomImage = {
-    def getRow(yy: Int): IndexedSeq[Float] = {
+    def getRow(yy: Int): ImSeq[Float] = {
       for (z <- 0 until zSize) yield { (0 until xSize).map(x => getXYZ(x, yy, z)).sum }
     }
 
@@ -85,10 +87,10 @@ case class DicomVolume(volume: Seq[DicomImage]) {
   /**
     * Get the sum of each line of voxels in the Y axis.  In other words, all
     * voxels with the same x and z coordinates are summed.  This is akin to
-    * creating a 2 dimensional profile seen from the Y axis.
+    * creating a 2-dimensional profile seen from the Y axis.
     */
   def sumY: DicomImage = {
-    def getRow(zz: Int): IndexedSeq[Float] = {
+    def getRow(zz: Int): ImSeq[Float] = {
       for (x <- 0 until xSize) yield { (0 until ySize).map(y => getXYZ(x, y, zz)).sum }
     }
 
@@ -100,10 +102,10 @@ case class DicomVolume(volume: Seq[DicomImage]) {
   /**
     * Get the sum of each line of voxels in the Z axis.  In other words, all
     * voxels with the same x and y coordinates are summed.  This is akin to
-    * creating a 2 dimensional profile seen from the Z axis.
+    * creating a 2-dimensional profile seen from the Z axis.
     */
   def sumZ: DicomImage = {
-    def getRow(yy: Int): IndexedSeq[Float] = {
+    def getRow(yy: Int): ImSeq[Float] = {
       for (x <- 0 until xSize) yield { (0 until zSize).map(z => getXYZ(x, yy, z)).sum }
     }
 

@@ -31,7 +31,10 @@ import javax.vecmath.Point2i
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
-class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
+class DicomImage(val pixelData: scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]]) {
+  type ImSeq[T] = scala.collection.immutable.IndexedSeq[T]
+  def this(pixelData: scala.collection.Seq[scala.collection.Seq[Float]]) = this(pixelData.asInstanceOf[scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]]])
+  def this(pixelData: scala.collection.IndexedSeq[scala.collection.IndexedSeq[Float]]) = this(pixelData.asInstanceOf[scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]]])
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
 
   val Rows: Int = pixelData.size
@@ -43,7 +46,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
   val width: Int = Columns
   val height: Int = Rows
 
-  def getSubArray(rectangle: Rectangle): IndexedSeq[IndexedSeq[Float]] = {
+  def getSubArray(rectangle: Rectangle): scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]] = {
     val x = (if (rectangle.getX < 0) 0 else rectangle.getX).toInt
     val y = (if (rectangle.getY < 0) 0 else rectangle.getY).toInt
     val w = (if (rectangle.getX + rectangle.getWidth > width) width - rectangle.getX else rectangle.getWidth).toInt
@@ -238,7 +241,10 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
       evalCol(col)
       col.next
     })
-    DicomImage.sortPixelRating(worstPixels.buf).take(maxBadPix)
+
+    val buf = worstPixels.buf.toList.asInstanceOf[scala.collection.immutable.Seq[DicomImage.PixelRating]]
+
+    DicomImage.sortPixelRating(buf).take(maxBadPix)
   }
 
   private def scoreWithStandardDeviation(badList: Seq[DicomImage.PixelRating], radius: Int): Seq[DicomImage.PixelRating] = {
@@ -687,7 +693,7 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     * @return a new pixel array.
     */
   //noinspection ScalaWeakerAccess
-  def transform(trans: Float => Float): IndexedSeq[IndexedSeq[Float]] = {
+  def transform(trans: Float => Float): scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]] = {
     pixelData.map(row => row.map(pixel => trans(pixel)))
   }
 
@@ -721,9 +727,9 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     */
   //noinspection ScalaUnusedSymbol
   def fun1(func: Float => Float): DicomImage = {
-    def row(y: Int): IndexedSeq[Float] =
+    def row(y: Int): scala.collection.immutable.IndexedSeq[Float] =
       (0 until width).map(x => func(get(x, y)))
-    val pix = (0 until height).map(row)
+    val pix: scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]] = (0 until height).map(row)
 
     new DicomImage(pix)
   }
@@ -738,9 +744,9 @@ class DicomImage(val pixelData: IndexedSeq[IndexedSeq[Float]]) {
     */
   //noinspection ScalaUnusedSymbol
   def fun2(func: (Float, Float) => Float, other: DicomImage): DicomImage = {
-    def row(y: Int): IndexedSeq[Float] =
+    def row(y: Int): scala.collection.immutable.IndexedSeq[Float] =
       (0 until width).map(x => func(get(x, y), other.get(x, y)))
-    val pix = (0 until height).map(row)
+    val pix: scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]] = (0 until height).map(row)
 
     new DicomImage(pix)
   }
@@ -773,13 +779,13 @@ object DicomImage {
     */
   def histogramSum(seq: Iterable[Iterable[HistPoint]]): Seq[HistPoint] = {
     val all = seq.flatten.groupBy(_.value).map(g => HistPoint(g._1, g._2.map(_.count).sum)).filter(_.count > 0).toSeq.sortBy(_.value)
-    all
+    all.asInstanceOf[Seq[HistPoint]]
   }
 
   //  case class BadPixelSet(list: Seq[PixelRating], minBound: Float, maxBound: Float);
 
   //noinspection ScalaWeakerAccess
-  def getPixelData(attributeList: AttributeList): IndexedSeq[IndexedSeq[Float]] = {
+  def getPixelData(attributeList: AttributeList): scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]] = {
     val pixDat = attributeList.getPixelData.getShortValues
     val Rows = attributeList.get(TagFromName.Rows).getIntegerValues()(0)
     val Columns = attributeList.get(TagFromName.Columns).getIntegerValues()(0)

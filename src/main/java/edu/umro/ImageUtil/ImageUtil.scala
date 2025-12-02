@@ -21,6 +21,7 @@ import org.opensourcephysics.numerics.CubicSpline
 import java.awt.geom.Point2D
 import java.awt.image.BufferedImage
 import java.awt.{BasicStroke, Color, Graphics2D, RenderingHints}
+import java.awt.Rectangle
 import java.io.File
 import java.security.InvalidParameterException
 import javax.imageio.ImageIO
@@ -40,16 +41,19 @@ object ImageUtil {
   /**
     * Get the 0 - 255 brightness of a pixel by averaging the red+green+blue levels.
     */
+  //noinspection ScalaWeakerAccess
   def brightnessOf(color: Color): Double = (color.getRed + color.getGreen + color.getBlue) / 3.0
 
   /**
     * Get the 0 - 255 brightness of a pixel by averaging the red+green+blue levels.
     */
+  //noinspection ScalaWeakerAccess
   def brightnessOf(rgb: Int): Double = brightnessOf(new Color(rgb))
 
   /**
     * Solid line stroke / style
     */
+  //noinspection ScalaWeakerAccess
   val solidLine = new BasicStroke
 
   /**
@@ -114,7 +118,7 @@ object ImageUtil {
 
   /**
     * Given an image, mirror it vertically.  Pixels on the top will be on the bottom, and
-    * vice-versa.  Pixels on the left will stay on the left.  Pixels on the right will
+    * vice versa.  Pixels on the left will stay on the left.  Pixels on the right will
     * stay on the right.
     */
   def mirrorVertically(original: BufferedImage): BufferedImage = {
@@ -129,7 +133,7 @@ object ImageUtil {
 
   /**
     * Given an image, mirror it horizontally.  Pixels on the left will be on the right, and
-    * vice-versa.  Pixels on the top will stay on the top.  Pixels on the bottom will
+    * vice versa.  Pixels on the top will stay on the top.  Pixels on the bottom will
     * stay on the bottom.
     */
   def mirrorHorizontally(original: BufferedImage): BufferedImage = {
@@ -247,13 +251,13 @@ object ImageUtil {
 
   /**
     * Given a range, return a list of major graticule positions within that
-    * range that will make a user friendly display.
+    * range that will make a user-friendly display.
     *
-    * @param min: Minimum value of range to be displayed
+    * @param min Minimum value of range to be displayed
     *
-    * @param max: Maximum value of range to be displayed
+    * @param max Maximum value of range to be displayed
     *
-    * @param maxCount: Maximum number of graticules to be returned.  Must be greater than 0.
+    * @param maxCount Maximum number of graticules to be returned.  Must be greater than 0.
     */
   def graticule(min: Double, max: Double, maxCount: Int): Seq[Double] = {
     val range = (max - min).abs
@@ -261,13 +265,13 @@ object ImageUtil {
     val multiple = Math.pow(10.0, Math.log10(range).floor - 2)
 
     @tailrec
-    def getIncrement(mult: Double): Double = {
+    def getIncrement(multiple: Double): Double = {
       def works(grat: Double): Boolean = {
         maxCount >= (range / grat)
       }
-      majorCandidates.map(c => c * mult).find(c => works(c)) match {
+      majorCandidates.map(c => c * multiple).find(c => works(c)) match {
         case Some(c) => c
-        case _       => getIncrement(mult * 10)
+        case _       => getIncrement(multiple * 10)
       }
     }
 
@@ -291,9 +295,9 @@ object ImageUtil {
     * Find the maximum point in a profile by fitting a cubic spline over it and then searching.  It is
     * assumed that the profile has exactly one local maximum.  (ie: one hump, not multiple).
     *
-    * @param xList: List of X positions of data.  Each value must be unique.
+    * @param xList List of X positions of data.  Each value must be unique.
     *
-    * @param yList: List of Y values corresponding to X values.  The profile of these values is examined.
+    * @param yList List of Y values corresponding to X values.  The profile of these values is examined.
     */
   def profileMaxCubic(xList: Array[Double], yList: Array[Double]): Double = {
     val cubic = new CubicSpline(xList, yList)
@@ -304,15 +308,15 @@ object ImageUtil {
     }
 
     @tailrec
-    def search(iter: Int, a: Pt, b: Pt): Double = {
-      if (iter < 1) Seq(a, b).maxBy(_.y).x
+    def search(iteration: Int, a: Pt, b: Pt): Double = {
+      if (iteration < 1) Seq(a, b).maxBy(_.y).x
       else {
-        val incr = (a.x - b.x).abs / divs
+        val increment = (a.x - b.x).abs / divs
         val minX = Math.min(a.x, b.x)
-        val between = (1 until divs).map(i => Pt(minX + (i * incr)))
+        val between = (1 until divs).map(i => Pt(minX + (i * increment)))
         val all = (Seq(a, b) ++ between).sortBy(_.x)
         val best = all.maxBy(pt => pt.y)
-        search(iter - 1, Pt(best.x - incr), Pt(best.x + incr))
+        search(iteration - 1, Pt(best.x - increment), Pt(best.x + increment))
       }
     }
 
@@ -356,6 +360,31 @@ object ImageUtil {
     val isAlphaPreMultiplied = cm.isAlphaPremultiplied
     val raster = bi.copyData(bi.getRaster.createCompatibleWritableRaster())
     new BufferedImage(cm, raster, isAlphaPreMultiplied, null)
+  }
+
+  /**
+    * Create a new buffered image that is a sub-image of the original.
+    * @param bufferedImage Original full-sized image.
+    * @param aoi Area of Interest.
+    * @return Copy of the AOI.
+    */
+  //noinspection ScalaUnusedSymbol
+  def subImage(bufferedImage: BufferedImage, aoi: Rectangle): BufferedImage = {
+    BufferedImage.TYPE_INT_RGB
+    bufferedImage.getType
+    val newBi = new BufferedImage(aoi.width, aoi.height, BufferedImage.TYPE_INT_RGB)
+
+    (0 until aoi.width). //
+    foreach(x =>
+      (0 until aoi.height). //
+      foreach(y => {
+        val pixValue = bufferedImage.getRGB(x + aoi.x, y + aoi.y)
+        newBi.setRGB(x, y, pixValue)
+      })
+    )
+
+    newBi
+
   }
 
 }
