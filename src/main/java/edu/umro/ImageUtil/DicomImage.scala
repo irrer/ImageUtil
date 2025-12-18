@@ -34,7 +34,8 @@ import scala.collection.mutable.ArrayBuffer
 class DicomImage(val pixelData: scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]]) {
   type ImSeq[T] = scala.collection.immutable.IndexedSeq[T]
   def this(pixelData: scala.collection.Seq[scala.collection.Seq[Float]]) = this(pixelData.asInstanceOf[scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]]])
-  def this(pixelData: scala.collection.IndexedSeq[scala.collection.IndexedSeq[Float]]) = this(pixelData.asInstanceOf[scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]]])
+  def this(pixelData: scala.collection.IndexedSeq[scala.collection.IndexedSeq[Float]]) =
+    this(pixelData.asInstanceOf[scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]]])
   def this(attributeList: AttributeList) = this(DicomImage.getPixelData(attributeList))
 
   val Rows: Int = pixelData.size
@@ -746,6 +747,30 @@ class DicomImage(val pixelData: scala.collection.immutable.IndexedSeq[scala.coll
   def fun2(func: (Float, Float) => Float, other: DicomImage): DicomImage = {
     def row(y: Int): scala.collection.immutable.IndexedSeq[Float] =
       (0 until width).map(x => func(get(x, y), other.get(x, y)))
+    val pix: scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]] = (0 until height).map(row)
+
+    new DicomImage(pix)
+  }
+
+  /**
+    * Create a new DicomImage with all pixels set to the range of 0 through 1.
+    *
+    * @param percentBadPixels Drop this many pixels from both the top and bottom range to avoid problems with bad pixels.
+    * @return New image with pixels valued to 0 through 1.
+    */
+  //noinspection ScalaUnusedSymbol
+  def normalize(percentBadPixels: Double): DicomImage = {
+    val numDrop = ((Rows * Columns) * (percentBadPixels / 100.0)).round.toInt
+
+    val sorted = pixelData.flatten.sorted.drop(numDrop).dropRight(numDrop)
+
+    val min = sorted.head
+    val max = sorted.last
+    val range = max - min
+
+    def row(y: Int): scala.collection.immutable.IndexedSeq[Float] =
+      (0 until width).map(x => (get(x, y) - min) / range)
+
     val pix: scala.collection.immutable.IndexedSeq[scala.collection.immutable.IndexedSeq[Float]] = (0 until height).map(row)
 
     new DicomImage(pix)
