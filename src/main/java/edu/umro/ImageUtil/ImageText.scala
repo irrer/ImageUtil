@@ -16,9 +16,11 @@
 
 package edu.umro.ImageUtil
 
+import java.awt.Font
+import java.awt.Graphics2D
 import java.awt.font.FontRenderContext
-import java.awt.geom.{Point2D, Rectangle2D}
-import java.awt.{Font, Graphics2D}
+import java.awt.geom.Point2D
+import java.awt.geom.Rectangle2D
 
 object ImageText {
 
