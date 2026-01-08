@@ -20,16 +20,17 @@ import com.pixelmed.dicom.{AttributeList, AttributeTag, TagFromName}
 import edu.umro.DicomDict.TagByName
 
 import java.awt.geom.Point2D
+import javax.vecmath.Point2d
 
 /**
   * Support mapping points between the isoplane and the image plane.  Isoplane values are in mm with
   * the origin at the center of the image.   Pixel plane values are in pixels with the origin in the
-  * upper left corner of the image.  Functions do not factor in XRayImageReceptorTranslation, which if
+  * upper left corner of the image.  Functions do not factor in XRayImageReceptorTranslation, which, if
   * needed, should be done by the caller.
- *
- * @param al Base it on this attribute list.  It should be an RTIMAGE.
- * @param RTImageSID Specify this to override the RTImageSID value found in al.
- */
+  *
+  * @param al Base it on this attribute list.  It should be an RTIMAGE.
+  * @param RTImageSID Specify this to override the RTImageSID value found in al.
+  */
 class IsoImagePlaneTranslator(al: AttributeList, RTImageSID: Option[Double] = None) {
   private def dblOf(tag: AttributeTag): Double = al.get(tag).getDoubleValues.head
   private def intOf(tag: AttributeTag): Int = al.get(tag).getIntegerValues.head
@@ -67,7 +68,7 @@ class IsoImagePlaneTranslator(al: AttributeList, RTImageSID: Option[Double] = No
 
   /**
     * Center of image in isoplane coordinates in mm.  Note that DICOM
-    * standard gantry coordinates have the the sign of the Y axis negated,
+    * standard gantry coordinates have the sign of the Y axis negated,
     * so that positive is up in the image.
     */
 
@@ -110,6 +111,9 @@ class IsoImagePlaneTranslator(al: AttributeList, RTImageSID: Option[Double] = No
   /** convert a coordinate from isoplane in mm to pixel plane. */
   def iso2Pix(isoPoint: Point2D.Double): Point2D.Double = iso2Pix(isoPoint.getX, isoPoint.getY)
 
+  /** convert a coordinate from isoplane in mm to pixel plane. */
+  def iso2Pix(isoPoint: Point2d): Point2d = new Point2d(iso2PixCoordX(isoPoint.getX), iso2PixCoordY(isoPoint.getY))
+
   /** convert x distance from pixel plane to isoplane in mm. */
   def pix2IsoDistX(x: Double): Double = x / expansionFactorX
 
@@ -127,6 +131,9 @@ class IsoImagePlaneTranslator(al: AttributeList, RTImageSID: Option[Double] = No
 
   /** convert a coordinate from pixel plane to isoplane in mm. */
   def pix2Iso(pixPoint: Point2D.Double): Point2D.Double = pix2Iso(pixPoint.getX, pixPoint.getY)
+
+  /** convert a coordinate from pixel plane to isoplane in mm. */
+  def pix2Iso(pixPoint: Point2d): Point2d = new Point2d(pix2IsoCoordX(pixPoint.getX), pix2IsoCoordY(pixPoint.getY))
 
   /** Minimum point in the isoplane that is still in the image plane (can appear on the imager). */
   //noinspection ScalaUnusedSymbol
@@ -146,10 +153,10 @@ class IsoImagePlaneTranslator(al: AttributeList, RTImageSID: Option[Double] = No
   }
 
   override def toString: String = {
-    "SID/SAD" + beamExpansionRatio.formatted("%12.8f") +
-      "    SID: " + dblOf(TagByName.RTImageSID).formatted("%7.5f") + "    SAD: " + dblOf(TagByName.RadiationMachineSAD).formatted("%7.5f") +
+    "SID/SAD" + "%12.8f".format(beamExpansionRatio) +
+      "    SID: " + "%7.5f".format(dblOf(TagByName.RTImageSID)) + "    SAD: " + "%7.5f".format(dblOf(TagByName.RadiationMachineSAD)) +
       "    height: " + height + ", " + "    width: " + width + ", " +
-      "    ImagePlanePixelSpacing: " + pixelSizeX.formatted("%7.5f") + ", " + pixelSizeY.formatted("%7.5f")
+      "    ImagePlanePixelSpacing: " + "%7.5f".format(pixelSizeX) + ", " + "%7.5f".format(pixelSizeY)
   }
 
   //noinspection ScalaUnusedSymbol
