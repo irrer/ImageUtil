@@ -22,7 +22,7 @@ object ImageDisplay {
     * @param img Show this image.
     */
   //noinspection ScalaUnusedSymbol
-  def showImageAndWait(img: BufferedImage): Unit = {
+  def showImageAndWaitX(img: BufferedImage): Unit = {
     val latch = new CountDownLatch(1)
 
     // Create a JPanel that paints the image
@@ -63,13 +63,14 @@ object ImageDisplay {
     */
   //noinspection ScalaUnusedSymbol
   //noinspection ScalaWeakerAccess
-  def showInMSPaint(img: BufferedImage): Unit = {
+  def showInMSPaintX(img: BufferedImage): Unit = {
     // Save the image to a temporary PNG file
     val tempFile = File.createTempFile("tempImage", ".png")
     tempFile.deleteOnExit()
     ImageIO.write(img, "png", tempFile)
 
     // Command to open MS Paint with the temp file
+    //noinspection SpellCheckingInspection
     val paintCmd = Array("mspaint", tempFile.getAbsolutePath)
     // Start the process
     val process = new ProcessBuilder(paintCmd: _*).start()
@@ -85,11 +86,13 @@ object ImageDisplay {
     * @param yName Y axis name, defaults to Y
     * @param title Name of chart, defaults to "Line Chart"
     */
-  def showChart(data: Seq[Double], xName: String = "X", yName: String = "Y", title: String = "Line Chart"): Unit = {
+  //noinspection ScalaWeakerAccess
+  def showChartX(data: Seq[Double], xName: String = "X", yName: String = "Y", title: String = "Line Chart"): Unit = {
 
     val xText = data.indices.mkString(",")
     val yText = data.mkString(",")
 
+    //noinspection SpellCheckingInspection
     val htmlText =
       s"""
          |<!DOCTYPE html>
@@ -160,7 +163,7 @@ object ImageDisplay {
   def main(args: Array[String]): Unit = {
 
     if (true) {
-      showChart(Seq(1.1, 2.2, 4.4, 3.3))
+      showChartX(Seq(1.1, 2.2, 4.4, 3.3))
       Thread.sleep(5 * 1000)
     }
 
@@ -168,7 +171,7 @@ object ImageDisplay {
       val image = new BufferedImage(256, 346, BufferedImage.TYPE_INT_RGB)
       // put a pattern in the image
       (0 until image.getWidth).foreach(x => (0 until image.getHeight).foreach(y => image.setRGB(x, y, (x * y * 11) % 0xffffff)))
-      showInMSPaint(image)
+      showInMSPaintX(image)
       Thread.sleep(100 * 1000)
     }
   }
