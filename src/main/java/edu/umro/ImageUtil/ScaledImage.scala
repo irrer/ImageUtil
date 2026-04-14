@@ -4,6 +4,7 @@ import java.awt.Graphics2D
 import java.awt.geom.Point2D
 import java.awt.image.BufferedImage
 import java.awt.Color
+import java.awt.geom.Rectangle2D
 import java.io.File
 import javax.vecmath.Point2d
 
@@ -33,6 +34,14 @@ case class ScaledImage(scale: Int, offsetX: Int = 0, offsetY: Int = 0) {
     scalePixel(pix - offsetY)
   }
 
+  /**
+    * Draw a line from x1,y1 --> x2,y2.
+    * @param gc Graphics context.
+    * @param x1 Starting x coordinate.
+    * @param y1 Starting y coordinate.
+    * @param x2 Ending x coordinate.
+    * @param y2 Ending y coordinate.
+    */
   def drawLine(gc: Graphics2D, x1: Double, y1: Double, x2: Double, y2: Double): Unit = {
     gc.drawLine(
       scalePixelX(x1),
@@ -42,12 +51,41 @@ case class ScaledImage(scale: Int, offsetX: Int = 0, offsetY: Int = 0) {
     )
   }
 
+  //noinspection ScalaWeakerAccess
   def drawLine(gc: Graphics2D, p1: Point2d, p2: Point2d): Unit = {
     drawLine(gc, p1.x, p1.y, p2.x, p2.y)
   }
 
+  //noinspection ScalaWeakerAccess
   def drawLine(gc: Graphics2D, p1: Point2D.Double, p2: Point2d): Unit = {
     drawLine(gc, p1.x, p1.y, p2.x, p2.y)
+  }
+
+  /**
+    * Draw a rectangle.
+    * @param gc Graphics context.
+    * @param rectangle Draw this.
+    */
+  //noinspection ScalaWeakerAccess
+  def drawRect(gc: Graphics2D, rectangle: Rectangle2D.Double): Unit = {
+
+    val x1s = scalePixelX(rectangle.x)
+    val y1s = scalePixelX(rectangle.y)
+    val width = round(rectangle.width * scale)
+    val height = round(rectangle.height * scale)
+
+    gc.drawRect(x1s, y1s, width, height)
+
+    /*
+    val x1 = rectangle.x
+    val y1 = rectangle.y
+    val x2 = x1 + rectangle.width
+    val y2 = y1 + rectangle.height
+    drawLine(gc, x1, y1, x2, y1)
+    drawLine(gc, x1, y1, x1, y2)
+    drawLine(gc, x1, y2, x2, y2)
+    drawLine(gc, x2, y1, x2, y2)
+     */
   }
 
   def drawTextCenteredAt(graphics: Graphics2D, x: Double, y: Double, text: String): Unit = {
@@ -72,8 +110,8 @@ case class ScaledImage(scale: Int, offsetX: Int = 0, offsetY: Int = 0) {
 }
 
 /**
- * For testing only.
- */
+  * For testing only.
+  */
 object ScaledImage {
   def main(args: Array[String]): Unit = {
     val w = 10
