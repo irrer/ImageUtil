@@ -350,6 +350,7 @@ object ImageUtil {
     * @param pointList List of points on a line.
     * @return List of points evenly spaced apart, each point corresponding to one of the points in <code>pointList</code>.
     */
+  //noinspection ScalaUnusedSymbol
   def evenlySpacedLeastSquares(pointList: Seq[Double]): Seq[Double] = {
     require(pointList.nonEmpty, "pointList must be non-empty")
 
