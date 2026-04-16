@@ -75,17 +75,21 @@ case class ScaledImage(scale: Int, offsetX: Int = 0, offsetY: Int = 0) {
     val height = round(rectangle.height * scale)
 
     gc.drawRect(x1s, y1s, width, height)
+  }
 
-    /*
-    val x1 = rectangle.x
-    val y1 = rectangle.y
-    val x2 = x1 + rectangle.width
-    val y2 = y1 + rectangle.height
-    drawLine(gc, x1, y1, x2, y1)
-    drawLine(gc, x1, y1, x1, y2)
-    drawLine(gc, x1, y2, x2, y2)
-    drawLine(gc, x2, y1, x2, y2)
-     */
+  /**
+    * File the given rectangle.
+    * @param gc Graphics context.
+    * @param rectangle Fill this.
+    */
+  //noinspection ScalaWeakerAccess
+  def fillRect(gc: Graphics2D, rectangle: Rectangle2D.Double): Unit = {
+    val x1s = scalePixelX(rectangle.x)
+    val y1s = scalePixelX(rectangle.y)
+    val width = round(rectangle.width * scale)
+    val height = round(rectangle.height * scale)
+
+    gc.fillRect(x1s, y1s, width, height)
   }
 
   def drawTextCenteredAt(graphics: Graphics2D, x: Double, y: Double, text: String): Unit = {
