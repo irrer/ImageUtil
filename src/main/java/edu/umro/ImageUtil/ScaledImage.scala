@@ -68,13 +68,14 @@ case class ScaledImage(scale: Int, offsetX: Int = 0, offsetY: Int = 0) {
     */
   //noinspection ScalaWeakerAccess
   def drawRect(gc: Graphics2D, rectangle: Rectangle2D.Double): Unit = {
-
-    val x1s = scalePixelX(rectangle.x)
-    val y1s = scalePixelY(rectangle.y)
-    val width = round(rectangle.width * scale)
-    val height = round(rectangle.height * scale)
-
-    gc.drawRect(x1s, y1s, width, height)
+    val x1 = rectangle.x
+    val y1 = rectangle.y
+    val x2 = rectangle.x + rectangle.width
+    val y2 = rectangle.y + rectangle.height
+    drawLine(gc, x1, y1, x2, y1) // top
+    drawLine(gc, x1, y2, x2, y2) // bottom
+    drawLine(gc, x1, y1, x1, y2) // left
+    drawLine(gc, x2, y1, x2, y2) // right
   }
 
   /**
