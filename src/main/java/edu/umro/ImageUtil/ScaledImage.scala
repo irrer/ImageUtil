@@ -70,7 +70,7 @@ case class ScaledImage(scale: Int, offsetX: Int = 0, offsetY: Int = 0) {
   def drawRect(gc: Graphics2D, rectangle: Rectangle2D.Double): Unit = {
 
     val x1s = scalePixelX(rectangle.x)
-    val y1s = scalePixelX(rectangle.y)
+    val y1s = scalePixelY(rectangle.y)
     val width = round(rectangle.width * scale)
     val height = round(rectangle.height * scale)
 
@@ -85,7 +85,7 @@ case class ScaledImage(scale: Int, offsetX: Int = 0, offsetY: Int = 0) {
   //noinspection ScalaWeakerAccess
   def fillRect(gc: Graphics2D, rectangle: Rectangle2D.Double): Unit = {
     val x1s = scalePixelX(rectangle.x)
-    val y1s = scalePixelX(rectangle.y)
+    val y1s = scalePixelY(rectangle.y)
     val width = round(rectangle.width * scale)
     val height = round(rectangle.height * scale)
 
