@@ -97,4 +97,15 @@ object LocateEdge {
 
   }
 
+  /**
+    * For development testing only.
+    */
+  def main(args: Array[String]): Unit = {
+    val list = IndexedSeq(1, 1, 2, 3, 3).map(_.toFloat)
+    val mean = list.sum / list.size
+    println("These results should be the same:")
+    println(locateEdge(list, mean))
+    println(locateEdge(list.reverse, mean))
+  }
+
 }
