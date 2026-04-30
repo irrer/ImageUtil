@@ -423,4 +423,96 @@ object ImageUtil {
 
   }
 
+
+  /**
+   * Perform a function on every pixel of an image, and return a new version of the image.
+   *
+   * @param bufImg             Original image.
+   * @param singleColorChanger Function that, given a single color value, returns a new color value.
+   * @return
+   */
+  //noinspection ScalaUnusedSymbol, ScalaWeakerAccess
+  def transformByRGB(bufImg: BufferedImage, singleColorChanger: Int => Int): BufferedImage = {
+    val newBuf = ImageUtil.deepCopy(bufImg)
+    val xRange = 0 until bufImg.getWidth
+    val yRange = 0 until bufImg.getHeight
+    xRange.foreach(x => yRange.foreach(y => {
+      newBuf.setRGB(x, y, singleColorChanger(bufImg.getRGB(x, y)))
+    }))
+    newBuf
+  }
+
+  /**
+   * Perform a function on every pixel of an image, and return a new version of the image.
+   *
+   * @param bufImg             Original image.
+   * @param singleColorChanger Function that, given an RGB value, returns a new RGB value.
+   * @return
+   */
+  //noinspection ScalaUnusedSymbo, ScalaWeakerAccess
+  def transformByColor(bufImg: BufferedImage, singleColorChanger: Int => Int): BufferedImage = {
+
+    def byColor(rgb: Int): Int = {
+      def lit(c: Int): Int = {
+        Math.clamp(singleColorChanger(c), 0, 255)
+      }
+
+      val r = (rgb >> 16) & 0xff
+      val g = (rgb >> 8) & 0xff
+      val b = rgb & 0xff
+
+      // @formatter:off
+      val red   = lit((rgb >> 16) & 0xff)
+      val green = lit((rgb >>  8) & 0xff)
+      val blue  = lit(rgb         & 0xff)
+      // @formatter:on
+      val newRGB = (red << 16) + (green << 8) + blue
+      newRGB
+    }
+
+    transformByRGB(bufImg, byColor)
+  }
+
+  /**
+   * Make a new, lighter version of the given image.
+   *
+   * @param bufImg           Original image.
+   * @param percentLightness Must be from 0 to 100.  0 does nothing, 100 makes the image completely white.
+   * @return New, darker image.
+   */
+  //noinspection ScalaUnusedSymbol
+  def lightenImage(bufImg: BufferedImage, percentLightness: Double): BufferedImage = {
+
+    val minBright = (Math.clamp(percentLightness, 0, 100) / 100.0) * 255
+
+    val b = minBright
+    val a = (255 - minBright) / 255
+
+    def colorChanger(color: Int): Int = ((color * a) + b).round.toInt
+
+    val newBuf = transformByColor(bufImg, colorChanger)
+    newBuf
+  }
+
+  /**
+   * Make a new, darker version of the given image.
+   *
+   * @param bufImg          Original image.
+   * @param percentDarkness Must be from 0 to 100.  0 does nothing, 100 makes the image completely black.
+   * @return New, darker image.
+   */
+  //noinspection ScalaUnusedSymbol
+  def darkenImage(bufImg: BufferedImage, percentDarkness: Double): BufferedImage = {
+
+    val maxBright = (Math.clamp(percentDarkness, 0, 100) / 100.0) * 255
+
+    val b = 0.0
+    val a = maxBright / 255
+
+    def colorChanger(color: Int): Int = ((color * a) + b).round.toInt
+
+    val newBuf = transformByColor(bufImg, colorChanger)
+    newBuf
+  }
+
 }
